@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import crypto from "crypto";

@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebaseAdmin";
 import CreateLinkForm from "@/components/dashboard/CreateLinkForm";
 import LinksTable from "@/components/dashboard/LinksTable";
 import QuickActions from "@/components/dashboard/QuickActions";

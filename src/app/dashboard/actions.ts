@@ -1,7 +1,7 @@
 // src/app/dashboard/actions.ts
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { revalidatePath } from "next/cache";
 
 function generateRandomAlias() {

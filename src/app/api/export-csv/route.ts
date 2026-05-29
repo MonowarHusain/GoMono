@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { NextResponse } from "next/server";
 
 // Force Next.js to not cache this route so you always get live data

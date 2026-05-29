@@ -8,24 +8,25 @@ function generateRandomAlias() {
     return Math.random().toString(36).substring(2, 8).toLowerCase();
 }
 
-// Inside src/app/dashboard/actions.ts
-
 export async function createLink(formData: FormData) {
     try {
         const originalUrl = formData.get("originalUrl") as string;
         let alias = (formData.get("alias") as string) || generateRandomAlias();
         alias = alias.toLowerCase().trim();
 
+        // Extract domain preference
+        const domain = (formData.get("domain") as string) || "to.mono.bro.bd";
+
         const isProtected = formData.get("isProtected") === "on";
         const password = formData.get("password") as string | null;
         const expiresAtInput = formData.get("expiresAt") as string;
         const expiresAt = expiresAtInput ? new Date(expiresAtInput) : null;
 
-        // NEW: Burn After Reading limit
+        // Burn After Reading limit
         const maxClicksInput = formData.get("maxClicks") as string;
         const maxClicks = maxClicksInput ? parseInt(maxClicksInput, 10) : null;
 
-        // NEW: Tagging System (split comma-separated string into an array)
+        // Tagging System
         const tagsInput = formData.get("tags") as string;
         const tags = tagsInput
             ? tagsInput.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
@@ -39,6 +40,7 @@ export async function createLink(formData: FormData) {
         await linkRef.set({
             originalUrl,
             alias,
+            domain,    // Saved to DB
             createdAt: new Date(),
             expiresAt,
             isProtected,
@@ -67,8 +69,6 @@ export async function deleteLink(alias: string) {
     }
 }
 
-// Add this at the bottom of src/app/dashboard/actions.ts
-
 export async function updateLink(oldAlias: string, formData: FormData) {
     try {
         const originalUrl = formData.get("originalUrl") as string;
@@ -76,6 +76,9 @@ export async function updateLink(oldAlias: string, formData: FormData) {
         const password = formData.get("password") as string | null;
         const expiresAtInput = formData.get("expiresAt") as string;
         const expiresAt = expiresAtInput ? new Date(expiresAtInput) : null;
+
+        // Extract the updated domain
+        const domain = (formData.get("domain") as string) || "to.mono.bro.bd";
 
         const maxClicksInput = formData.get("maxClicks") as string;
         const maxClicks = maxClicksInput ? parseInt(maxClicksInput, 10) : null;
@@ -92,6 +95,7 @@ export async function updateLink(oldAlias: string, formData: FormData) {
         // Build the update payload
         const updateData: any = {
             originalUrl,
+            domain, // Ensure domain updates are captured
             expiresAt,
             isProtected,
             maxClicks,
@@ -129,8 +133,6 @@ export async function updateLink(oldAlias: string, formData: FormData) {
             // Delete the old document
             await oldLinkRef.delete();
 
-            // Note: This moves the main document, but does not move the /clicks subcollection.
-            // For a complete enterprise app, you would run a batch job here to move sub-documents.
         } else {
             // If the alias is the same, just do a standard fast update
             await oldLinkRef.update(updateData);

@@ -8,6 +8,7 @@ import { Link2, Shield, Clock, Loader2, Tags, Flame, X } from "lucide-react";
 type LinkData = {
     alias: string;
     originalUrl: string;
+    domain?: string; // <-- Added domain to the type
     isProtected?: boolean;
     maxClicks?: number | null;
     tags?: string[];
@@ -18,6 +19,9 @@ export default function EditLinkModal({ link, onClose }: { link: LinkData; onClo
     const [isProtected, setIsProtected] = useState(link.isProtected || false);
     const [isLoading, setIsLoading] = useState(false);
 
+    // NEW: Initialize domain state with the current link's domain or fallback to default
+    const [domain, setDomain] = useState(link.domain || "to.mono.bro.bd");
+
     // Format the existing date for the datetime-local input
     const defaultDate = link.expiresAt
         ? new Date(link.expiresAt).toISOString().slice(0, 16)
@@ -27,13 +31,14 @@ export default function EditLinkModal({ link, onClose }: { link: LinkData; onClo
         e.preventDefault();
         setIsLoading(true);
 
+        // Since we added name="domain" to the select element, FormData automatically grabs it
         const formData = new FormData(e.currentTarget);
         const result = await updateLink(link.alias, formData);
 
         if (result?.error) {
             toast.error(result.error);
         } else {
-            toast.success(`Link /${link.alias} updated successfully!`);
+            toast.success(`Link updated successfully!`);
             onClose();
         }
 
@@ -64,20 +69,41 @@ export default function EditLinkModal({ link, onClose }: { link: LinkData; onClo
                         />
                     </div>
 
-                    {/* NEW: Alias Input */}
-                    <div className="group relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-500 font-medium">/</span>
-                        <input
-                            name="alias"
-                            type="text"
-                            required
-                            defaultValue={link.alias}
-                            disabled={isLoading}
-                            className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 py-3 pl-8 pr-4 text-sm text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10"
-                        />
-                        <p className="mt-1.5 text-xs text-amber-500/80 pl-2">
-                            Warning: Changing this will break the existing link.
-                        </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* NEW: Domain Selection */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-500 dark:text-neutral-400 ml-1">
+                                Domain
+                            </label>
+                            <select
+                                name="domain"
+                                value={domain}
+                                onChange={(e) => setDomain(e.target.value)}
+                                disabled={isLoading}
+                                className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 appearance-none"
+                            >
+                                <option value="to.mono.bro.bd">to.mono.bro.bd (Personal)</option>
+                                <option value="go.mono.bro.bd">go.mono.bro.bd (Tech)</option>
+                            </select>
+                        </div>
+
+                        {/* Alias Input */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-500 dark:text-neutral-400 ml-1">
+                                Alias <span className="text-amber-500/80">(Changing breaks current link)</span>
+                            </label>
+                            <div className="group relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-500 font-medium">/</span>
+                                <input
+                                    name="alias"
+                                    type="text"
+                                    required
+                                    defaultValue={link.alias}
+                                    disabled={isLoading}
+                                    className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 py-3 pl-8 pr-4 text-sm text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-slate-200/50 dark:border-neutral-800/50 bg-neutral-50 dark:bg-neutral-950 p-5">

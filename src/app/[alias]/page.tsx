@@ -49,17 +49,16 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
 
     // 5. Security Check: Burn Limit (Max Clicks)
     if (data.maxClicks && data.totalClicks >= data.maxClicks) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-neutral-950">
-                <div className="max-w-md rounded-2xl border border-amber-500/20 bg-amber-50/50 p-8 text-center dark:bg-amber-500/10">
-                    <AlertCircle className="mx-auto mb-4 h-12 w-12 text-amber-500" />
-                    <h1 className="text-xl font-bold text-amber-700 dark:text-amber-400">Burn Limit Reached</h1>
-                    <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                        This link has reached its maximum allowed clicks and has self-destructed.
-                    </p>
-                </div>
-            </div>
-        );
+        // Redirect them immediately to the burned page
+        redirect("/burned");
+    }
+
+    // (Optional) You can also do the same thing for expired links if you create an /expired page!
+    if (data.expiresAt) {
+        const expirationDate = new Date(data.expiresAt);
+        if (expirationDate < new Date()) {
+            redirect("/burned"); // Or point to a dedicated expired page
+        }
     }
 
     // 6. Security Check: Password Protection

@@ -1,106 +1,152 @@
 import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { FieldValue } from "firebase-admin/firestore";
+import { Shield, AlertTriangle, Flame, Lock, ArrowRight, Clock } from "lucide-react";
+
+// Force dynamic rendering so every click is checked against the DB in real-time
+export const dynamic = "force-dynamic";
 
 export default async function RedirectPage({
     params,
 }: {
-    params: Promise<{ alias: string }>;
+    params: Promise<{ alias: string }>
 }) {
-    // STRICT RULE: Always force the incoming alias to lowercase
-    const resolvedParams = await params;
-    const alias = resolvedParams.alias.toLowerCase();
+    // 1. You MUST await the params object in Next.js 15
+    const { alias } = await params;
 
-    // 1. Fetch the destination from Firestore
+    // 2. Now the string is ready for Firebase
     const linkRef = adminDb.collection("links").doc(alias);
     const doc = await linkRef.get();
 
+    // ==========================================
+    // 1. Check if the link exists
+    // ==========================================
     if (!doc.exists) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
-                <div className="text-center">
-                    <h1 className="text-4xl font-bold">404</h1>
-                    <p className="text-neutral-400 mt-2">This link does not exist.</p>
-                </div>
-            </main>
-        );
-    }
-
-    const data = doc.data();
-
-    // 2. Check Expiration
-    if (data?.expiresAt) {
-        const isExpired = data.expiresAt.toDate() < new Date();
-        if (isExpired) {
-            return (
-                <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
-                    <div className="text-center">
-                        <h1 className="text-3xl font-bold text-red-500">Link Expired</h1>
-                        <p className="text-neutral-400 mt-2">This URL is no longer active.</p>
+            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
+                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+                        <AlertTriangle className="h-8 w-8 text-neutral-500" />
                     </div>
-                </main>
-            );
-        }
-    }
-    // Inside src/app/[alias]/page.tsx
-
-    // 3. Check "Burn After Reading" Limit
-    if (data?.maxClicks && data.totalClicks >= data.maxClicks) {
-        return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-white p-4">
-                <div className="max-w-md text-center space-y-4">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-6">
-                        <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-red-500">Link Burned</h1>
-                    <p className="text-neutral-400">
-                        This link was configured to self-destruct after {data.maxClicks} clicks. It is no longer accessible.
+                    <h1 className="mb-2 text-2xl font-bold">Link Not Found</h1>
+                    <p className="text-neutral-500 dark:text-neutral-400">
+                        The URL you are looking for does not exist or has been permanently removed.
                     </p>
                 </div>
             </main>
         );
     }
-    // 3. Check Password Protection
-    if (data?.isProtected) {
-        // Note: For a complete system, you would render a Client Component here 
-        // containing a form that POSTs to /api/verify-password. 
-        // To keep this blueprint concise, we will render a placeholder for the protected route.
+
+    const data = doc.data()!;
+
+    // ==========================================
+    // 2. Check Expiration Date
+    // ==========================================
+    if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
-                <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-8 text-center backdrop-blur-xl">
-                    <h1 className="text-2xl font-bold mb-4">Protected Link</h1>
-                    <p className="text-neutral-400 mb-6">A password is required to access this URL.</p>
-                    {/* You will build out the password input form here later */}
-                    <input type="password" placeholder="Enter password" className="w-full rounded-md bg-neutral-800 p-3 text-white outline-none" disabled />
+            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
+                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/10">
+                        <Clock className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+                    </div>
+                    <h1 className="mb-2 text-2xl font-bold">Link Expired</h1>
+                    <p className="text-neutral-500 dark:text-neutral-400">
+                        This link was configured to expire on {data.expiresAt.toDate().toLocaleDateString()} and is no longer accessible.
+                    </p>
                 </div>
             </main>
         );
     }
 
-    // 4. Log the Analytics (Fire and Forget)
-    // We don't await this so it doesn't slow down the user's redirect!
-    const headersList = await headers();
-    const userAgent = headersList.get("user-agent") || "Unknown";
-    const referer = headersList.get("referer") || "Direct";
-
-    try {
-        // Add to the subcollection
-        linkRef.collection("clicks").add({
-            timestamp: new Date(),
-            userAgent,
-            referer,
-        });
-        // Increment the total clicks counter on the main document
-        linkRef.update({
-            totalClicks: FieldValue.increment(1)
-        });
-    } catch (error) {
-        console.error("Failed to log click:", error);
+    // ==========================================
+    // 3. Check "Burn After Reading" Limit
+    // ==========================================
+    if (data.maxClicks && data.totalClicks >= data.maxClicks) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
+                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
+                        <Flame className="h-8 w-8 text-red-600 dark:text-red-500" />
+                    </div>
+                    <h1 className="mb-2 text-2xl font-bold text-red-600 dark:text-red-500">Link Burned</h1>
+                    <p className="text-neutral-500 dark:text-neutral-400">
+                        This link was configured to self-destruct after {data.maxClicks} clicks. It has reached its limit.
+                    </p>
+                </div>
+            </main>
+        );
     }
 
-    // 5. The fast server-side redirect
-    redirect(data?.originalUrl);
+    // ==========================================
+    // 4. Check Password Protection
+    // ==========================================
+    if (data.isProtected) {
+        const attemptedPassword = searchParams.pwd;
+
+        // If no password is provided, or the password is wrong, render the unlock screen
+        if (attemptedPassword !== data.password) {
+            const isWrongAttempt = typeof attemptedPassword === "string";
+
+            return (
+                <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
+                    <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
+                        <div className="mb-6 flex flex-col items-center text-center">
+                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10">
+                                <Lock className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+                            </div>
+                            <h1 className="text-2xl font-bold">Protected Link</h1>
+                            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+                                This destination is secured. Please enter the password to continue.
+                            </p>
+                        </div>
+
+                        <form className="space-y-4">
+                            <div>
+                                <input
+                                    type="password"
+                                    name="pwd"
+                                    required
+                                    placeholder="Enter access password"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 px-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:border-blue-500/50"
+                                />
+                                {isWrongAttempt && (
+                                    <p className="mt-2 text-sm text-red-500">Incorrect password. Please try again.</p>
+                                )}
+                            </div>
+                            <button
+                                type="submit"
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                            >
+                                Unlock Destination <ArrowRight className="h-4 w-4" />
+                            </button>
+                        </form>
+                    </div>
+                </main>
+            );
+        }
+    }
+
+    // ==========================================
+    // 5. Fire Analytics
+    // ==========================================
+    // 5a. Increment the master counter
+    await linkRef.update({
+        totalClicks: FieldValue.increment(1),
+    });
+
+    // 5b. Log the exact timestamp into the subcollection for the Recharts graph
+    await linkRef.collection("clicks").add({
+        timestamp: FieldValue.serverTimestamp(),
+    });
+    // ==========================================
+    // 6. Execute Redirect
+    // ==========================================
+    let destination = data.originalUrl;
+
+    // Force absolute URL to prevent Next.js from treating it as a local route
+    if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
+        destination = "https://" + destination;
+    }
+
+    redirect(destination);
 }

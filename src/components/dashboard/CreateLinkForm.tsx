@@ -1,150 +1,329 @@
 "use client";
 
 import { useState } from "react";
-import { createLink } from "@/app/dashboard/actions";
+import {
+    Link2, Sparkles, Tag, Flame, Clock, Lock,
+    ChevronDown, ChevronUp, Share2, Navigation,
+    Megaphone, Search, LayoutTemplate, Copy, Check, Download
+} from "lucide-react";
 import { toast } from "sonner";
-import { Link2, Shield, Clock, Loader2, Sparkles, Flame, Tags } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function CreateLinkForm() {
-    const [isProtected, setIsProtected] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
-    async function handleAction(e: React.FormEvent<HTMLFormElement>) {
+    // UI Toggles
+    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+    const [isUtmOpen, setIsUtmOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Success State
+    const [createdData, setCreatedData] = useState<{ shortUrl: string; originalUrl: string; alias: string } | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        setIsLoading(true);
+        setLoading(true);
+        setCreatedData(null); // Clear previous success state
+        const toastId = toast.loading("Creating short link...");
 
-        const formData = new FormData(e.currentTarget);
-        const result = await createLink(formData);
+        const form = e.currentTarget;
+        const formData = new FormData(form);
 
-        if (result?.error) {
-            toast.error(result.error);
-        } else {
-            toast.success(`Success! /${result?.alias} is now active.`);
-            // @ts-ignore
-            e.target.reset();
-            setIsProtected(false);
+        let finalOriginalUrl = formData.get("originalUrl") as string;
+
+        // --- UTM Builder Logic ---
+        const utmSource = formData.get("utmSource");
+        const utmMedium = formData.get("utmMedium");
+        const utmCampaign = formData.get("utmCampaign");
+        const utmTerm = formData.get("utmTerm");
+        const utmContent = formData.get("utmContent");
+
+        if (utmSource || utmMedium || utmCampaign || utmTerm || utmContent) {
+            try {
+                const urlObj = new URL(finalOriginalUrl);
+                if (utmSource) urlObj.searchParams.set("utm_source", utmSource as string);
+                if (utmMedium) urlObj.searchParams.set("utm_medium", utmMedium as string);
+                if (utmCampaign) urlObj.searchParams.set("utm_campaign", utmCampaign as string);
+                if (utmTerm) urlObj.searchParams.set("utm_term", utmTerm as string);
+                if (utmContent) urlObj.searchParams.set("utm_content", utmContent as string);
+                finalOriginalUrl = urlObj.toString();
+            } catch (error) {
+                toast.error("Please enter a valid URL to attach UTM parameters.", { id: toastId });
+                setLoading(false);
+                return;
+            }
         }
 
-        setIsLoading(false);
+        const data = {
+            originalUrl: finalOriginalUrl,
+            customAlias: formData.get("customAlias"),
+            tags: formData.get("tags"),
+            maxClicks: formData.get("maxClicks"),
+            expiresAt: formData.get("expiresAt"),
+            password: formData.get("password"),
+        };
+
+        try {
+            const res = await fetch("/api/links", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            const responseData = await res.json();
+
+            if (!res.ok) {
+                throw new Error(responseData.error || "Failed to create link");
+            }
+
+            toast.success("Link shortened successfully!", { id: toastId });
+
+            // Calculate the full short URL based on the current domain
+            const fullShortUrl = `${window.location.origin}/${responseData.alias}`;
+
+            // Show the success panel
+            setCreatedData({
+                shortUrl: fullShortUrl,
+                originalUrl: finalOriginalUrl,
+                alias: responseData.alias
+            });
+
+            form.reset();
+            setIsAdvancedOpen(false);
+            setIsUtmOpen(false);
+            router.refresh();
+
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message === "Alias already taken"
+                ? "That custom alias is already in use!"
+                : "Error creating link. Check the console.",
+                { id: toastId }
+            );
+        } finally {
+            setLoading(false);
+        }
     }
 
+    // Handle Copy to Clipboard
+    const handleCopy = () => {
+        if (!createdData) return;
+        navigator.clipboard.writeText(createdData.shortUrl);
+        setCopied(true);
+        toast.success("Copied to clipboard!");
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    // Handle QR Code Download
+    const handleDownloadQR = async () => {
+        if (!createdData) return;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(createdData.shortUrl)}`;
+
+        try {
+            // Fetch the image as a blob to force a direct download rather than opening a new tab
+            const response = await fetch(qrUrl);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `QR-${createdData.alias}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            // Fallback if browser blocks the blob fetch
+            window.open(qrUrl, '_blank');
+        }
+    };
+
     return (
-        <form onSubmit={handleAction} className="flex flex-col gap-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* URL Input */}
-                <div className="group relative">
-                    <Link2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-600 dark:text-slate-500 transition-colors group-focus-within:text-blue-500" />
-                    <input
-                        id="originalUrlInput"
-                        name="originalUrl"
-                        type="url"
-                        required
-                        disabled={isLoading}
-                        placeholder="https://example.com/very-long-url"
-                        className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-neutral-500 outline-none transition-all focus:border-blue-500/50 focus:bg-neutral-900 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-                    />
-                </div>
-
-                {/* Alias Input */}
-                <div className="group relative">
-                    <Sparkles className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-600 dark:text-slate-500 transition-colors group-focus-within:text-blue-500" />
-                    <input
-                        name="alias"
-                        type="text"
-                        disabled={isLoading}
-                        placeholder="Custom Alias (optional)"
-                        className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-neutral-500 outline-none transition-all focus:border-blue-500/50 focus:bg-neutral-900 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-                    />
-                </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-6 rounded-xl border border-slate-200/50 dark:border-neutral-800/50 bg-white shadow-sm dark:bg-neutral-900/50 p-4">
-                {/* Advanced Settings Panel */}
-                <div className="flex flex-col gap-4 rounded-xl border border-slate-200/50 dark:border-neutral-800/50 bg-white shadow-sm dark:bg-neutral-900/50 p-5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500">Advanced Settings</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Tags Input */}
-                        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 pb-2 md:border-none md:pb-0">
-                            <Tags className="h-4 w-4 shrink-0" />
-                            <input
-                                name="tags"
-                                type="text"
-                                disabled={isLoading}
-                                placeholder="Tags (e.g. mlsa, thesis, personal)"
-                                className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder-neutral-600 outline-none transition-all focus:text-blue-400"
-                            />
+        <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Primary Inputs */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <Link2 className="h-5 w-5 text-neutral-400" />
                         </div>
-
-                        {/* Burn After Reading */}
-                        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-neutral-400">
-                            <Flame className="h-4 w-4 shrink-0 text-orange-500" />
-                            <input
-                                name="maxClicks"
-                                type="number"
-                                min="1"
-                                disabled={isLoading}
-                                placeholder="Burn limit (leave empty for ∞)"
-                                className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder-neutral-600 outline-none transition-all focus:text-orange-400"
-                            />
-                        </div>
+                        <input
+                            id="originalUrlInput"
+                            name="originalUrl"
+                            type="url"
+                            required
+                            placeholder="https://example.com/very-long-url"
+                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
+                        />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        {/* Expiration Input */}
-                        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-neutral-400">
-                            <Clock className="h-4 w-4 shrink-0" />
-                            <input
-                                name="expiresAt"
-                                type="datetime-local"
-                                disabled={isLoading}
-                                className="w-full bg-transparent text-sm text-slate-900 dark:text-white outline-none transition-all focus:text-blue-400 [color-scheme:dark]"
-                            />
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <Sparkles className="h-5 w-5 text-neutral-400" />
                         </div>
+                        <input
+                            name="customAlias"
+                            type="text"
+                            placeholder="Custom Alias (optional)"
+                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-purple-500/50"
+                        />
+                    </div>
+                </div>
 
-                        {/* Password Toggle */}
-                        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-500 dark:text-neutral-400 transition-colors hover:text-slate-900 dark:hover:text-white">
-                            <div className="relative flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="isProtected"
-                                    checked={isProtected}
-                                    onChange={(e) => setIsProtected(e.target.checked)}
-                                    disabled={isLoading}
-                                    className="peer sr-only"
-                                />
-                                <div className="h-5 w-5 rounded border border-slate-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-colors"></div>
-                                <Shield className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 text-slate-900 dark:text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                {/* Advanced Settings Toggle */}
+                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900/30">
+                    <button
+                        type="button"
+                        onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                        className="flex w-full items-center justify-between p-4 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    >
+                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Advanced Settings</span>
+                        {isAdvancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+
+                    {isAdvancedOpen && (
+                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-2 dark:border-neutral-800">
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Tag className="h-4 w-4 text-neutral-400" />
+                                </div>
+                                <input name="tags" type="text" placeholder="Tags (e.g. event, personal)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
                             </div>
-                            Require Password
-                        </label>
-                    </div>
-                </div>
-            </div>
 
-            {isProtected && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <input
-                        name="password"
-                        type="password"
-                        required
-                        disabled={isLoading}
-                        placeholder="Set an access password"
-                        className="w-full md:w-1/2 rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 py-3 px-4 text-sm text-slate-900 dark:text-white placeholder-neutral-500 outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-                    />
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Flame className="h-4 w-4 text-red-400" />
+                                </div>
+                                <input name="maxClicks" type="number" min="1" placeholder="Burn limit (e.g. 100)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-red-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Clock className="h-4 w-4 text-amber-400" />
+                                </div>
+                                <input name="expiresAt" type="datetime-local" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400 dark:focus:border-amber-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Lock className="h-4 w-4 text-neutral-400" />
+                                </div>
+                                <input name="password" type="password" placeholder="Require Password" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-neutral-500/50 focus:ring-4 focus:ring-neutral-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-neutral-500/50" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* UTM Builder Toggle */}
+                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900/30">
+                    <button
+                        type="button"
+                        onClick={() => setIsUtmOpen(!isUtmOpen)}
+                        className="flex w-full items-center justify-between p-4 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    >
+                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">UTM Builder</span>
+                        {isUtmOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+
+                    {isUtmOpen && (
+                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-2 dark:border-neutral-800">
+                            <div className="relative md:col-span-2">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Share2 className="h-4 w-4 text-indigo-400" />
+                                </div>
+                                <input name="utmSource" type="text" placeholder="Campaign Source (e.g. facebook, newsletter)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-indigo-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Navigation className="h-4 w-4 text-indigo-400" />
+                                </div>
+                                <input name="utmMedium" type="text" placeholder="Campaign Medium (e.g. cpc, email)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-indigo-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Megaphone className="h-4 w-4 text-indigo-400" />
+                                </div>
+                                <input name="utmCampaign" type="text" placeholder="Campaign Name (e.g. spring_sale)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-indigo-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Search className="h-4 w-4 text-indigo-400" />
+                                </div>
+                                <input name="utmTerm" type="text" placeholder="Campaign Term (e.g. running+shoes)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-indigo-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <LayoutTemplate className="h-4 w-4 text-indigo-400" />
+                                </div>
+                                <input name="utmContent" type="text" placeholder="Campaign Content (e.g. logolink, textlink)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-indigo-500/50" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Submit Button */}
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex w-[160px] items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                >
+                    {loading ? "Shortening..." : "Shorten Link"}
+                </button>
+            </form>
+
+            {/* ========================================== */}
+            {/* SUCCESS PANEL (Appears after link creation) */}
+            {/* ========================================== */}
+            {createdData && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-50/50 p-6 dark:border-emerald-500/10 dark:bg-emerald-500/5">
+                    <h3 className="mb-4 text-sm font-bold text-emerald-700 dark:text-emerald-400">Link Successfully Created!</h3>
+
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    readOnly
+                                    value={createdData.shortUrl}
+                                    className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-neutral-800 outline-none dark:border-emerald-900/50 dark:bg-neutral-900 dark:text-neutral-100"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCopy}
+                                    className="flex shrink-0 items-center justify-center rounded-xl bg-emerald-600 p-3 text-white transition-all hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-500/20 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                                >
+                                    {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                                </button>
+                            </div>
+                            <p className="max-w-[300px] truncate text-xs text-neutral-500 lg:max-w-md dark:text-neutral-400">
+                                Target: {createdData.originalUrl}
+                            </p>
+                        </div>
+
+                        <div className="flex shrink-0 flex-col items-center gap-3 border-l border-emerald-200/50 pl-6 dark:border-emerald-900/50">
+                            <div className="rounded-lg bg-white p-1 shadow-sm">
+                                <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(createdData.shortUrl)}`}
+                                    alt="QR Code"
+                                    className="h-20 w-20"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleDownloadQR}
+                                className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                            >
+                                <Download className="h-3.5 w-3.5" />
+                                Download QR
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
-
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-fit overflow-hidden rounded-xl bg-neutral-900 dark:bg-white px-8 py-3 text-sm font-semibold text-white dark:text-black transition-all hover:bg-neutral-800 dark:hover:bg-neutral-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-            >
-                <span className="flex items-center gap-2">
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {isLoading ? "Creating..." : "Shorten Link"}
-                </span>
-            </button>
-        </form>
+        </div>
     );
 }

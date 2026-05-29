@@ -66,7 +66,11 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold text-slate-900 dark:text-white">/{link.alias}</span>
-                                        {link.isProtected && <ShieldAlert className="h-3.5 w-3.5 text-amber-500" title="Password Protected" />}
+                                        {link.isProtected && (
+                                            <span title="Password Protected" className="flex items-center">
+                                                <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
+                                            </span>
+                                        )}
                                         {link.maxClicks && link.totalClicks >= link.maxClicks && (
                                             <span className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-500 uppercase tracking-wider">
                                                 Burned

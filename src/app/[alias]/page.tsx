@@ -1,152 +1,121 @@
-import { adminDb } from "@/lib/firebase-admin";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
-import { Shield, AlertTriangle, Flame, Lock, ArrowRight, Clock } from "lucide-react";
+import { Lock, AlertCircle } from "lucide-react";
 
-// Force dynamic rendering so every click is checked against the DB in real-time
-export const dynamic = "force-dynamic";
+interface PageProps {
+    // Next.js 15 requires dynamic route parameters to be Promises
+    params: Promise<{ alias: string }>;
+    searchParams: Promise<{ pwd?: string }>;
+}
 
-export default async function RedirectPage({
-    params,
-}: {
-    params: Promise<{ alias: string }>
-}) {
-    // 1. You MUST await the params object in Next.js 15
-    const { alias } = await params;
+export default async function RedirectPage({ params, searchParams }: PageProps) {
+    // 1. Await the Next.js 15 routing promises
+    const resolvedParams = await params;
+    const resolvedSearchParams = await searchParams;
 
-    // 2. Now the string is ready for Firebase
+    const alias = resolvedParams.alias;
+    const attemptedPassword = resolvedSearchParams.pwd;
+
+    // 2. Fetch the link document from Firestore
     const linkRef = adminDb.collection("links").doc(alias);
     const doc = await linkRef.get();
 
-    // ==========================================
-    // 1. Check if the link exists
-    // ==========================================
+    // 3. Handle 404 if the alias doesn't exist in the database
     if (!doc.exists) {
-        return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
-                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
-                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-                        <AlertTriangle className="h-8 w-8 text-neutral-500" />
-                    </div>
-                    <h1 className="mb-2 text-2xl font-bold">Link Not Found</h1>
-                    <p className="text-neutral-500 dark:text-neutral-400">
-                        The URL you are looking for does not exist or has been permanently removed.
-                    </p>
-                </div>
-            </main>
-        );
+        notFound();
     }
 
-    const data = doc.data()!;
+    const data = doc.data();
+    if (!data) notFound();
 
-    // ==========================================
-    // 2. Check Expiration Date
-    // ==========================================
-    if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-        return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
-                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
-                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/10">
-                        <Clock className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+    // 4. Security Check: Expiration Date
+    if (data.expiresAt) {
+        const expirationDate = new Date(data.expiresAt);
+        if (expirationDate < new Date()) {
+            return (
+                <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-neutral-950">
+                    <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-50/50 p-8 text-center dark:bg-red-500/10">
+                        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+                        <h1 className="text-xl font-bold text-red-700 dark:text-red-400">Link Expired</h1>
+                        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                            This link has passed its expiration date and is no longer active.
+                        </p>
                     </div>
-                    <h1 className="mb-2 text-2xl font-bold">Link Expired</h1>
-                    <p className="text-neutral-500 dark:text-neutral-400">
-                        This link was configured to expire on {data.expiresAt.toDate().toLocaleDateString()} and is no longer accessible.
-                    </p>
                 </div>
-            </main>
-        );
+            );
+        }
     }
 
-    // ==========================================
-    // 3. Check "Burn After Reading" Limit
-    // ==========================================
+    // 5. Security Check: Burn Limit (Max Clicks)
     if (data.maxClicks && data.totalClicks >= data.maxClicks) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
-                <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
-                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
-                        <Flame className="h-8 w-8 text-red-600 dark:text-red-500" />
-                    </div>
-                    <h1 className="mb-2 text-2xl font-bold text-red-600 dark:text-red-500">Link Burned</h1>
-                    <p className="text-neutral-500 dark:text-neutral-400">
-                        This link was configured to self-destruct after {data.maxClicks} clicks. It has reached its limit.
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-neutral-950">
+                <div className="max-w-md rounded-2xl border border-amber-500/20 bg-amber-50/50 p-8 text-center dark:bg-amber-500/10">
+                    <AlertCircle className="mx-auto mb-4 h-12 w-12 text-amber-500" />
+                    <h1 className="text-xl font-bold text-amber-700 dark:text-amber-400">Burn Limit Reached</h1>
+                    <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                        This link has reached its maximum allowed clicks and has self-destructed.
                     </p>
                 </div>
-            </main>
+            </div>
         );
     }
 
-    // ==========================================
-    // 4. Check Password Protection
-    // ==========================================
+    // 6. Security Check: Password Protection
     if (data.isProtected) {
-        const attemptedPassword = searchParams.pwd;
-
-        // If no password is provided, or the password is wrong, render the unlock screen
         if (attemptedPassword !== data.password) {
-            const isWrongAttempt = typeof attemptedPassword === "string";
-
+            // Render the Password Unlock UI
             return (
-                <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900 transition-colors dark:bg-neutral-950 dark:text-white">
-                    <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
+                <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 transition-colors duration-300 dark:bg-neutral-950">
+                    <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                         <div className="mb-6 flex flex-col items-center text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10">
-                                <Lock className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+                                <Lock className="h-6 w-6 text-neutral-600 dark:text-neutral-400" />
                             </div>
-                            <h1 className="text-2xl font-bold">Protected Link</h1>
+                            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Protected Link</h1>
                             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                                This destination is secured. Please enter the password to continue.
+                                Enter the password to access this destination.
                             </p>
                         </div>
 
-                        <form className="space-y-4">
+                        {/* A native HTML form that submits a GET request to the same URL, appending ?pwd=value */}
+                        <form action={`/${alias}`} method="GET" className="space-y-4">
                             <div>
                                 <input
                                     type="password"
                                     name="pwd"
                                     required
-                                    placeholder="Enter access password"
-                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 px-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:border-blue-500/50"
+                                    placeholder="Enter password..."
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
                                 />
-                                {isWrongAttempt && (
-                                    <p className="mt-2 text-sm text-red-500">Incorrect password. Please try again.</p>
-                                )}
                             </div>
+
+                            {attemptedPassword && (
+                                <p className="text-center text-sm font-medium text-red-500">
+                                    Incorrect password. Please try again.
+                                </p>
+                            )}
+
                             <button
                                 type="submit"
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                                className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:bg-neutral-800 active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
                             >
-                                Unlock Destination <ArrowRight className="h-4 w-4" />
+                                Unlock Link
                             </button>
                         </form>
                     </div>
-                </main>
+                </div>
             );
         }
     }
 
-    // ==========================================
-    // 5. Fire Analytics
-    // ==========================================
-    // 5a. Increment the master counter
+    // 7. If all checks pass, increment the click counter
+    // We await this so the database write completes before Vercel terminates the function during redirect
     await linkRef.update({
-        totalClicks: FieldValue.increment(1),
+        totalClicks: FieldValue.increment(1)
     });
 
-    // 5b. Log the exact timestamp into the subcollection for the Recharts graph
-    await linkRef.collection("clicks").add({
-        timestamp: FieldValue.serverTimestamp(),
-    });
-    // ==========================================
-    // 6. Execute Redirect
-    // ==========================================
-    let destination = data.originalUrl;
-
-    // Force absolute URL to prevent Next.js from treating it as a local route
-    if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
-        destination = "https://" + destination;
-    }
-
-    redirect(destination);
+    // 8. Execute the routing!
+    redirect(data.originalUrl);
 }

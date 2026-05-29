@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Pro-level metadata for SEO and link sharing
 export const metadata: Metadata = {
-  title: "link-monowar | Private URL Manager",
-  description: "A high-performance, single-user URL shortener engineered for speed, analytics, and security.",
+  title: "GoMono | Premium Link Management",
+  description: "GoMono | Premium Link Management",
   icons: {
     icon: "/favicon.ico",
   },

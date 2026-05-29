@@ -43,7 +43,7 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center bg-neutral-950 p-4">
             <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900/50 p-8 shadow-2xl backdrop-blur-xl">
                 <div className="mb-8 text-center">
-                    <h1 className="text-2xl font-bold text-white">link-monowar</h1>
+                    <h1 className="text-2xl font-bold text-white">GoMono</h1>
                     <p className="text-sm text-neutral-400">Admin Login Portal</p>
                 </div>
 

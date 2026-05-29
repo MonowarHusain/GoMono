@@ -48,7 +48,7 @@ export default function QRCodeModal({ url, onClose }: { url: string; onClose: ()
         const pngUrl = finalCanvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = `link-monowar-${defaultAlias}.png`;
+        downloadLink.download = `GoMono-${defaultAlias}.png`;
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);

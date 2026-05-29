@@ -26,7 +26,7 @@ export async function GET() {
             status: 200,
             headers: {
                 "Content-Type": "text/csv; charset=utf-8",
-                "Content-Disposition": 'attachment; filename="link-monowar-export.csv"',
+                "Content-Disposition": 'attachment; filename="GoMono-export.csv"',
             },
         });
     } catch (error) {

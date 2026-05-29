@@ -18,7 +18,7 @@ export default function LandingPage() {
 
         {/* Headline */}
         <h1 className="mb-6 bg-gradient-to-br from-white to-neutral-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent sm:text-7xl">
-          link-monowar
+          GoMono
         </h1>
 
         {/* Subtitle */}

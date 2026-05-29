@@ -49,7 +49,7 @@ export default function DashboardLayout({
             <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 p-4 backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-900/70">
                 <div className="mx-auto flex max-w-6xl items-center justify-between">
                     <span className="font-bold tracking-tight text-slate-900 dark:text-white">
-                        link-monowar / admin
+                        GoMono / admin
                     </span>
 
                     <div className="flex items-center gap-4">

@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
     Link2, Sparkles, Tag, Flame, Clock, Lock,
     ChevronDown, ChevronUp, Share2, Navigation,
-    Megaphone, Search, LayoutTemplate, Copy, Check, Download
+    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ export default function CreateLinkForm() {
         const formData = new FormData(form);
 
         let finalOriginalUrl = formData.get("originalUrl") as string;
+        const selectedDomain = (formData.get("domain") as string) || "to.mono.bro.bd";
 
         // --- UTM Builder Logic ---
         const utmSource = formData.get("utmSource");
@@ -58,6 +59,7 @@ export default function CreateLinkForm() {
         const data = {
             originalUrl: finalOriginalUrl,
             customAlias: formData.get("customAlias"),
+            domain: selectedDomain, // NEW: Include domain in the payload
             tags: formData.get("tags"),
             maxClicks: formData.get("maxClicks"),
             expiresAt: formData.get("expiresAt"),
@@ -79,8 +81,8 @@ export default function CreateLinkForm() {
 
             toast.success("Link shortened successfully!", { id: toastId });
 
-            // Calculate the full short URL based on the current domain
-            const fullShortUrl = `${window.location.origin}/${responseData.alias}`;
+            // Calculate the full short URL based on the SELECTED domain
+            const fullShortUrl = `https://${selectedDomain}/${responseData.alias}`;
 
             // Show the success panel
             setCreatedData({
@@ -121,7 +123,6 @@ export default function CreateLinkForm() {
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(createdData.shortUrl)}`;
 
         try {
-            // Fetch the image as a blob to force a direct download rather than opening a new tab
             const response = await fetch(qrUrl);
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
@@ -134,7 +135,6 @@ export default function CreateLinkForm() {
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            // Fallback if browser blocks the blob fetch
             window.open(qrUrl, '_blank');
         }
     };
@@ -142,20 +142,35 @@ export default function CreateLinkForm() {
     return (
         <div className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Primary Inputs */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Destination URL */}
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                        <Link2 className="h-5 w-5 text-neutral-400" />
+                    </div>
+                    <input
+                        id="originalUrlInput"
+                        name="originalUrl"
+                        type="url"
+                        required
+                        placeholder="https://example.com/very-long-url"
+                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
+                    />
+                </div>
+
+                {/* Domain & Alias Row */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {/* NEW: Domain Selection */}
                     <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                            <Link2 className="h-5 w-5 text-neutral-400" />
+                            <Globe className="h-5 w-5 text-neutral-400" />
                         </div>
-                        <input
-                            id="originalUrlInput"
-                            name="originalUrl"
-                            type="url"
-                            required
-                            placeholder="https://example.com/very-long-url"
-                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
-                        />
+                        <select
+                            name="domain"
+                            className="w-full appearance-none rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
+                        >
+                            <option value="to.mono.bro.bd">to.mono.bro.bd (Personal)</option>
+                            <option value="go.mono.bro.bd">go.mono.bro.bd (Tech)</option>
+                        </select>
                     </div>
 
                     <div className="relative">

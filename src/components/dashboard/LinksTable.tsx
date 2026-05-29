@@ -7,9 +7,11 @@ import EditLinkModal from "./EditLinkModal";
 import { toast } from "sonner";
 import { Copy, QrCode, Trash2, ExternalLink, MousePointerClick, ShieldAlert, Pencil } from "lucide-react";
 
+// Added 'domain' to the type definition
 type Link = {
     alias: string;
     originalUrl: string;
+    domain?: string;
     totalClicks: number;
     createdAt: string;
     isProtected?: boolean;
@@ -22,15 +24,11 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingLink, setEditingLink] = useState<Link | null>(null);
 
-    //  New Dynamic Way
-    const handleCopy = async () => {
-        // Use the domain saved in the DB, or fallback to a default if it's an older link
-        const linkDomain = link.domain || "go.mono.bro.bd";
-
-        // Clean up any accidental protocols stored in the DB field
+    // Updated to accept the specific link object being copied
+    const handleCopy = async (linkToCopy: Link) => {
+        const linkDomain = linkToCopy.domain || "go.mono.bro.bd";
         const cleanDomain = linkDomain.replace(/^(https?:\/\/)/, "");
-
-        const fullLink = `https://${cleanDomain}/${link.alias}`;
+        const fullLink = `https://${cleanDomain}/${linkToCopy.alias}`;
 
         await navigator.clipboard.writeText(fullLink);
         toast.success("Copied to clipboard!");
@@ -123,14 +121,20 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
                                             <Pencil className="h-4 w-4" />
                                         </button>
                                         <button
-                                            onClick={() => handleCopy(link.alias)}
+                                            // Updated to pass the full link object
+                                            onClick={() => handleCopy(link)}
                                             className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all"
                                             title="Copy URL"
                                         >
                                             <Copy className="h-4 w-4" />
                                         </button>
                                         <button
-                                            onClick={() => setActiveQR(`https://link.mono.bro.bd/${link.alias}`)}
+                                            // Updated QR code to use the correct domain dynamically
+                                            onClick={() => {
+                                                const d = link.domain || "go.mono.bro.bd";
+                                                const cleanD = d.replace(/^(https?:\/\/)/, "");
+                                                setActiveQR(`https://${cleanD}/${link.alias}`);
+                                            }}
                                             className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
                                             title="Generate QR Code"
                                         >

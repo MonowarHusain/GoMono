@@ -22,10 +22,18 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingLink, setEditingLink] = useState<Link | null>(null);
 
-    const handleCopy = (alias: string) => {
-        const url = `https://link.mono.bro.bd/${alias}`;
-        navigator.clipboard.writeText(url);
-        toast.success("Link copied to clipboard");
+    //  New Dynamic Way
+    const handleCopy = async () => {
+        // Use the domain saved in the DB, or fallback to a default if it's an older link
+        const linkDomain = link.domain || "go.mono.bro.bd";
+
+        // Clean up any accidental protocols stored in the DB field
+        const cleanDomain = linkDomain.replace(/^(https?:\/\/)/, "");
+
+        const fullLink = `https://${cleanDomain}/${link.alias}`;
+
+        await navigator.clipboard.writeText(fullLink);
+        toast.success("Copied to clipboard!");
     };
 
     const handleDelete = async (alias: string) => {

@@ -90,4 +90,3 @@ GoMono uses a NoSQL architecture optimized for fast read/redirects.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-I'm sorry for the headache—let me know if those buttons show up properly for you once you swap that line!

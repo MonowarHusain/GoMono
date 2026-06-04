@@ -38,7 +38,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased bg-slate-50 text-slate-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors duration-300`}
       >
-        <ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
 
           {/* Global toast notifications with rich colors and a close button for better UX */}

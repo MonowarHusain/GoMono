@@ -8,8 +8,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
 
-export default function CreateLinkForm() {
+// NEW: Added onLinkCreated to the component props
+export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () => void }) {
     const router = useRouter();
 
     // UI Toggles
@@ -23,53 +25,69 @@ export default function CreateLinkForm() {
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
+
+        // FIX: Grab the form and data IMMEDIATELY before any 'await' pauses the code
+        const form = e.currentTarget;
+        const formData = new FormData(form);
+
         setLoading(true);
         setCreatedData(null); // Clear previous success state
         const toastId = toast.loading("Creating short link...");
 
-        const form = e.currentTarget;
-        const formData = new FormData(form);
-
-        let finalOriginalUrl = formData.get("originalUrl") as string;
-        const selectedDomain = (formData.get("domain") as string) || "to.mono.bro.bd";
-
-        // --- UTM Builder Logic ---
-        const utmSource = formData.get("utmSource");
-        const utmMedium = formData.get("utmMedium");
-        const utmCampaign = formData.get("utmCampaign");
-        const utmTerm = formData.get("utmTerm");
-        const utmContent = formData.get("utmContent");
-
-        if (utmSource || utmMedium || utmCampaign || utmTerm || utmContent) {
-            try {
-                const urlObj = new URL(finalOriginalUrl);
-                if (utmSource) urlObj.searchParams.set("utm_source", utmSource as string);
-                if (utmMedium) urlObj.searchParams.set("utm_medium", utmMedium as string);
-                if (utmCampaign) urlObj.searchParams.set("utm_campaign", utmCampaign as string);
-                if (utmTerm) urlObj.searchParams.set("utm_term", utmTerm as string);
-                if (utmContent) urlObj.searchParams.set("utm_content", utmContent as string);
-                finalOriginalUrl = urlObj.toString();
-            } catch (error) {
-                toast.error("Please enter a valid URL to attach UTM parameters.", { id: toastId });
-                setLoading(false);
-                return;
-            }
+        // Get the current logged-in user
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            toast.error("Authentication error: You must be logged in.", { id: toastId });
+            setLoading(false);
+            return;
         }
 
-        const data = {
-            originalUrl: finalOriginalUrl,
-            customAlias: formData.get("customAlias"),
-            domain: selectedDomain, // NEW: Include domain in the payload
-            tags: formData.get("tags"),
-            maxClicks: formData.get("maxClicks"),
-            expiresAt: formData.get("expiresAt"),
-            password: formData.get("password"),
-        };
-
         try {
+            // NOW we can safely pause to get the token
+            const token = await currentUser.getIdToken();
+
+            let finalOriginalUrl = formData.get("originalUrl") as string;
+            const selectedDomain = (formData.get("domain") as string) || "to.mono.bro.bd";
+
+            // --- UTM Builder Logic ---
+            const utmSource = formData.get("utmSource");
+            const utmMedium = formData.get("utmMedium");
+            const utmCampaign = formData.get("utmCampaign");
+            const utmTerm = formData.get("utmTerm");
+            const utmContent = formData.get("utmContent");
+
+            if (utmSource || utmMedium || utmCampaign || utmTerm || utmContent) {
+                try {
+                    const urlObj = new URL(finalOriginalUrl);
+                    if (utmSource) urlObj.searchParams.set("utm_source", utmSource as string);
+                    if (utmMedium) urlObj.searchParams.set("utm_medium", utmMedium as string);
+                    if (utmCampaign) urlObj.searchParams.set("utm_campaign", utmCampaign as string);
+                    if (utmTerm) urlObj.searchParams.set("utm_term", utmTerm as string);
+                    if (utmContent) urlObj.searchParams.set("utm_content", utmContent as string);
+                    finalOriginalUrl = urlObj.toString();
+                } catch (error) {
+                    toast.error("Please enter a valid URL to attach UTM parameters.", { id: toastId });
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            const data = {
+                originalUrl: finalOriginalUrl,
+                customAlias: formData.get("customAlias"),
+                domain: selectedDomain,
+                tags: formData.get("tags"),
+                maxClicks: formData.get("maxClicks"),
+                expiresAt: formData.get("expiresAt"),
+                password: formData.get("password"),
+            };
+
             const res = await fetch("/api/links", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify(data),
             });
 
@@ -94,7 +112,11 @@ export default function CreateLinkForm() {
             form.reset();
             setIsAdvancedOpen(false);
             setIsUtmOpen(false);
-            router.refresh();
+
+            // NEW: Instantly trigger the parent dashboard to fetch the new links
+            if (onLinkCreated) {
+                onLinkCreated();
+            }
 
         } catch (error: any) {
             console.error(error);
@@ -159,7 +181,6 @@ export default function CreateLinkForm() {
 
                 {/* Domain & Alias Row */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {/* NEW: Domain Selection */}
                     <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                             <Globe className="h-5 w-5 text-neutral-400" />

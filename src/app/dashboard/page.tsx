@@ -1,55 +1,89 @@
-import { adminDb } from "@/lib/firebaseAdmin";
+"use client";
+
+import { useEffect, useState } from "react";
 import CreateLinkForm from "@/components/dashboard/CreateLinkForm";
 import LinksTable from "@/components/dashboard/LinksTable";
 import QuickActions from "@/components/dashboard/QuickActions";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import { Activity, Link2, Users } from "lucide-react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
-export const dynamic = "force-dynamic";
+export default function DashboardPage() {
+    const [links, setLinks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [userName, setUserName] = useState("Monowar");
 
-export default async function DashboardPage() {
-    const linksSnapshot = await adminDb
-        .collection("links")
-        .orderBy("createdAt", "desc")
-        .get();
+    // NEW: Extracted fetch logic so it can be called instantly when a link is created
+    const fetchLinks = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
 
-    const links = linksSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-            alias: data.alias,
-            originalUrl: data.originalUrl,
-            isProtected: data.isProtected,
-            totalClicks: data.totalClicks || 0,
-            createdAt: data.createdAt?.toDate().toISOString(),
-            expiresAt: data.expiresAt?.toDate().toISOString() || null,
-            maxClicks: data.maxClicks || null,
-            tags: data.tags || [],
-        };
-    });
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch("/api/links", {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
 
-    // Calculate Overview Metrics
+            if (res.ok) {
+                const data = await res.json();
+                setLinks(data.links);
+            }
+        } catch (error) {
+            console.error("Failed to fetch links", error);
+        }
+    };
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Dynamic greeting
+                if (user.email === "demo01@go.mono.bro.bd") {
+                    setUserName("Demo User");
+                } else {
+                    setUserName("Monowar");
+                }
+
+                // Initial load of links
+                await fetchLinks();
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center text-neutral-500 dark:text-neutral-400">
+                Loading dashboard data...
+            </div>
+        );
+    }
+
+    // Calculate Overview Metrics dynamically from the filtered links
     const totalClicks = links.reduce((acc, curr) => acc + curr.totalClicks, 0);
     const activeLinks = links.length;
     const uniqueVisitors = 0;
 
-    // Generate the last 7 days of trailing data for the Recharts graph
+    // Generate the last 7 days of trailing data
     const chartData = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
         return {
             date: d.toLocaleDateString("en-US", { weekday: "short" }),
-            // Distributes your total clicks to create a realistic-looking traffic curve
             clicks: i === 6 ? Math.floor(totalClicks * 0.4) : Math.floor(Math.random() * (totalClicks * 0.2)),
         };
     });
 
     return (
         <div className="space-y-10 pb-12">
-
             {/* 1. Header & Greeting */}
             <header className="flex flex-col gap-1">
                 <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">Overview</h1>
-                <p className="text-neutral-500 dark:text-neutral-400">Welcome back, Monowar</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Welcome back, {userName}</p>
             </header>
 
             {/* 2. The Overview Metric Cards */}
@@ -122,7 +156,8 @@ export default async function DashboardPage() {
             {/* 5. The Creation Form */}
             <section id="create-link-section" className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Shorten a new URL</h2>
-                <CreateLinkForm />
+                {/* FIX: Pass the fetchLinks function directly into the form */}
+                <CreateLinkForm onLinkCreated={fetchLinks} />
             </section>
 
             {/* 6. The Data Table */}
@@ -130,7 +165,6 @@ export default async function DashboardPage() {
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Recent Links</h2>
                 <LinksTable initialLinks={links} />
             </section>
-
         </div>
     );
 }

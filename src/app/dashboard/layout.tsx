@@ -12,17 +12,25 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [role, setRole] = useState("admin"); // NEW: Track if they are admin or demo
     const router = useRouter();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            // 1. Get the allowed emails and split them into an array
-            const allowedEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",");
+            // 1. Get the allowed emails, split them, and trim whitespace
+            const allowedEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim());
             const userEmail = user?.email || "";
 
             // 2. Check if user exists AND if their email is in the array
             if (user && allowedEmails.includes(userEmail)) {
                 setIsAuthorized(true);
+
+                // NEW: Set the dynamic role for the top navbar
+                if (userEmail === "demo01@go.mono.bro.bd") {
+                    setRole("demo");
+                } else {
+                    setRole("admin");
+                }
             } else {
                 // If they fail the check, boot them to the login page immediately
                 setIsAuthorized(false);
@@ -38,7 +46,7 @@ export default function DashboardLayout({
     if (!isAuthorized) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500 dark:bg-neutral-950 dark:text-neutral-400">
-                Verifying admin credentials...
+                Verifying credentials...
             </div>
         );
     }
@@ -49,7 +57,7 @@ export default function DashboardLayout({
             <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 p-4 backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-900/70">
                 <div className="mx-auto flex max-w-6xl items-center justify-between">
                     <span className="font-bold tracking-tight text-slate-900 dark:text-white">
-                        GoMono / admin
+                        GoMono / {role}
                     </span>
 
                     <div className="flex items-center gap-4">

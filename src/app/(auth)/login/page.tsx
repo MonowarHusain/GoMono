@@ -35,27 +35,37 @@ export default function LoginPage() {
         }
     };
 
-    // NEW: Auto-login handler for the Demo User
     const handleDemoSignIn = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-            // Automatically authenticates using the hardcoded credentials
+            // 1. Authenticate
             const result = await signInWithEmailAndPassword(auth, "demo01@go.mono.bro.bd", "demo@123");
             const userEmail = result.user.email || "";
-            const allowedEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim());
 
-            if (!allowedEmails.includes(userEmail) && userEmail !== "demo01@go.mono.bro.bd") {
+            // 2. Authorization check
+            const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim());
+            const isDemo = userEmail === "demo01@go.mono.bro.bd";
+            const isAdmin = adminEmails.includes(userEmail);
+
+            if (!isAdmin && !isDemo) {
                 await auth.signOut();
-                setError("Unauthorized access. Your account is not whitelisted.");
+                setError("Unauthorized access.");
                 setIsLoading(false);
                 return;
             }
 
-            router.push("/dashboard");
+            // 3. FORCE state sync before navigation
+            // We wait for the auth state to settle to avoid middleware loops
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            // 4. Use replace instead of push to prevent back-button loops
+            router.replace("/dashboard");
+
         } catch (err: any) {
-            setError("Demo account is currently unavailable. Please check credentials.");
+            console.error("Auth Error:", err);
+            setError("Demo account is currently unavailable.");
             setIsLoading(false);
         }
     };

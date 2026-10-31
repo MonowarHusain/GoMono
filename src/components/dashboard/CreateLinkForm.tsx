@@ -441,6 +441,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
 
                         <div className="flex shrink-0 flex-col items-center gap-3 border-l border-emerald-200/50 pl-6 dark:border-emerald-900/50">
                             <div className="rounded-lg bg-white p-1 shadow-sm">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(createdData.shortUrl)}`}
                                     alt="QR Code"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, Flame, ShieldAlert, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
+import { Clock, Flame, ShieldAlert, ArrowLeft, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 
 interface LinkExpiredViewProps {

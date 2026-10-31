@@ -253,7 +253,6 @@ export default function PublicShortener() {
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl);
-    const hasAdvancedFilters = hasSecurityOptions || hasRoutingOptions;
 
     return (
         <div className="w-full max-w-2xl px-2 sm:px-0">

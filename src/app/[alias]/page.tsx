@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
 import { Lock, AlertCircle } from "lucide-react";
+import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 
 interface PageProps {
     // Next.js 15 requires dynamic route parameters to be Promises
@@ -118,9 +119,11 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     // 7. Device-Based Smart Routing (Inspect User-Agent)
     const headerList = await headers();
     const userAgent = headerList.get("user-agent") || "";
+    const referer = headerList.get("referer") || null;
 
-    const isIos = /iphone|ipad|ipod/i.test(userAgent);
-    const isAndroid = /android/i.test(userAgent);
+    const parsedUa = parseUserAgent(userAgent);
+    const isIos = parsedUa.os === "iOS" || /iphone|ipad|ipod/i.test(userAgent);
+    const isAndroid = parsedUa.os === "Android" || /android/i.test(userAgent);
 
     let destinationUrl = data.originalUrl;
     if (isIos && data.iosUrl && typeof data.iosUrl === "string" && data.iosUrl.trim()) {
@@ -129,11 +132,44 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         destinationUrl = data.androidUrl.trim();
     }
 
-    // 8. If all checks pass, increment the click counter
-    // We await this so the database write completes before redirect terminates the function
-    await linkRef.update({
-        totalClicks: FieldValue.increment(1)
-    });
+    // 8. Atomic Click Analytics Recording & Metadata Event Logging
+    try {
+        const deviceKey = sanitizeFieldKey(parsedUa.device);
+        const browserKey = sanitizeFieldKey(parsedUa.browser);
+        const osKey = sanitizeFieldKey(parsedUa.os);
+
+        await Promise.all([
+            // 8a. Atomic aggregated counters on link doc for O(1) instantaneous analytics reads
+            linkRef.update({
+                totalClicks: FieldValue.increment(1),
+                [`devices.${deviceKey}`]: FieldValue.increment(1),
+                [`browsers.${browserKey}`]: FieldValue.increment(1),
+                [`os.${osKey}`]: FieldValue.increment(1),
+                lastClickedAt: FieldValue.serverTimestamp(),
+            }),
+            // 8b. Fine-grained historical click audit log in subcollection
+            linkRef.collection("clicks").add({
+                timestamp: FieldValue.serverTimestamp(),
+                userAgent: userAgent.slice(0, 500),
+                device: parsedUa.device,
+                browser: parsedUa.browser,
+                os: parsedUa.os,
+                targetUrl: destinationUrl,
+                referer: referer ? referer.slice(0, 500) : null,
+            }),
+        ]);
+    } catch (trackingErr) {
+        // High-availability: Do not block visitor redirect if metrics write encounters an error
+        console.error("Error recording link click analytics:", trackingErr);
+        try {
+            // Fallback: at least increment basic totalClicks counter
+            await linkRef.update({
+                totalClicks: FieldValue.increment(1),
+            });
+        } catch {
+            // Ignore secondary fallback error
+        }
+    }
 
     // 9. Execute the device-smart routing redirect!
     redirect(destinationUrl);

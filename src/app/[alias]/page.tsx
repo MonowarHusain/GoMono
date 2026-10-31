@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
-import { Lock, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
+import PasswordGate from "@/components/public/PasswordGate";
 
 interface PageProps {
     // Next.js 15 requires dynamic route parameters to be Promises
@@ -71,51 +72,25 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         redirect("/burned");
     }
 
-    // 6. Security Check: Password Protection
-    if (data.isProtected || (data.password && typeof data.password === "string")) {
-        const linkPassword = data.password;
-        if (linkPassword && attemptedPassword !== linkPassword) {
-            // Render the Password Unlock UI
+    // 6. Security Check: Password Protection Interception
+    const linkPassword = (data.password && typeof data.password === "string" && data.password.trim()) || null;
+    const isProtected = Boolean(data.isProtected || linkPassword);
+
+    if (isProtected && linkPassword) {
+        const cookieStore = await cookies();
+        const cookieAuth = cookieStore.get(`gomono_pwd_${alias}`)?.value;
+
+        const isAuthByQuery = Boolean(attemptedPassword && attemptedPassword === linkPassword);
+        const isAuthByCookie = Boolean(cookieAuth && cookieAuth === linkPassword);
+
+        if (!isAuthByQuery && !isAuthByCookie) {
+            // Render the gorgeous, minimalist password-entry screen matching GoMono's aesthetic
             return (
-                <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 transition-colors duration-300 dark:bg-neutral-950">
-                    <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-                        <div className="mb-6 flex flex-col items-center text-center">
-                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-                                <Lock className="h-6 w-6 text-neutral-600 dark:text-neutral-400" />
-                            </div>
-                            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Protected Link</h1>
-                            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                                Enter the password to access this destination.
-                            </p>
-                        </div>
-
-                        {/* A native HTML form that submits a GET request to the same URL, appending ?pwd=value */}
-                        <form action={`/${alias}`} method="GET" className="space-y-4">
-                            <div>
-                                <input
-                                    type="password"
-                                    name="pwd"
-                                    required
-                                    placeholder="Enter password..."
-                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
-                                />
-                            </div>
-
-                            {attemptedPassword && (
-                                <p className="text-center text-sm font-medium text-red-500">
-                                    Incorrect password. Please try again.
-                                </p>
-                            )}
-
-                            <button
-                                type="submit"
-                                className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:bg-neutral-800 active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-                            >
-                                Unlock Link
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                <PasswordGate
+                    alias={alias}
+                    domain={data.domain || "to.mono.bro.bd"}
+                    initialError={Boolean(attemptedPassword && attemptedPassword !== linkPassword)}
+                />
             );
         }
     }

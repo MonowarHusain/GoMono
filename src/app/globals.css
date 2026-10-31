@@ -7,3 +7,13 @@
     @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 antialiased transition-colors duration-200;
   }
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}

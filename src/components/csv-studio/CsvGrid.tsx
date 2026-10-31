@@ -94,6 +94,16 @@ export default function CsvGrid({
     // Active Column Action Menu State
     const [menuColId, setMenuColId] = useState<string | null>(null);
 
+    // Auto-close column action menu on outside click
+    useEffect(() => {
+        if (!menuColId) return;
+        const handleDocClick = () => {
+            setMenuColId(null);
+        };
+        document.addEventListener("click", handleDocClick);
+        return () => document.removeEventListener("click", handleDocClick);
+    }, [menuColId]);
+
     // Sorting State
     const [sortConfig, setSortConfig] = useState<{ columnId: string; direction: "asc" | "desc" } | null>(null);
 
@@ -263,7 +273,9 @@ export default function CsvGrid({
                             <div
                                 key={col.id}
                                 style={{ width: col.width || 180 }}
-                                className="relative flex items-center justify-between h-9 px-3 border-r border-zinc-200 dark:border-zinc-800 shrink-0 group/col hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors"
+                                className={`flex items-center justify-between h-9 px-3 border-r border-zinc-200 dark:border-zinc-800 shrink-0 group/col hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors ${
+                                    isMenuOpen ? "relative z-50" : "relative z-10"
+                                }`}
                             >
                                 {isRenaming ? (
                                     <div className="flex items-center gap-1 w-full">
@@ -340,7 +352,7 @@ export default function CsvGrid({
                                 {/* Context Menu */}
                                 {isMenuOpen && (
                                     <div
-                                        className="absolute right-1 top-full mt-1 z-40 w-44 rounded-2xl border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-800 dark:bg-zinc-900 animate-in fade-in"
+                                        className="absolute right-1 top-full mt-1.5 z-50 w-48 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 ring-1 ring-black/10 dark:ring-white/10 animate-in fade-in slide-in-from-top-1"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <button

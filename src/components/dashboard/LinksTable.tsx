@@ -15,7 +15,7 @@ import type { Link } from "@/types/link";
 
 export type { Link };
 
-type FilterType = "all" | "mine" | "public";
+type FilterType = "all" | "admin" | "public";
 
 export interface LinksTableProps {
     initialLinks: Link[];
@@ -37,30 +37,37 @@ export default function LinksTable({
     const [filter, setFilter] = useState<FilterType>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Helper to evaluate public ownership reliably
+    const isPublicLink = (l: Link) =>
+        l.isPublic === true ||
+        l.creatorType === "public" ||
+        l.createdBy === "public" ||
+        (l.isAdminOnly === false && !l.userId);
+
     // Calculate count totals
     const counts = useMemo(() => {
-        let mine = 0;
+        let admin = 0;
         let pub = 0;
         initialLinks.forEach((l) => {
-            if (l.isPublic || l.createdBy === "public") {
+            if (isPublicLink(l)) {
                 pub++;
             } else {
-                mine++;
+                admin++;
             }
         });
         return {
             all: initialLinks.length,
-            mine,
-            public: pub
+            admin,
+            public: pub,
         };
     }, [initialLinks]);
 
     // Filter and search links
     const filteredLinks = useMemo(() => {
         return initialLinks.filter((link) => {
-            const isPublicLink = link.isPublic === true || link.createdBy === "public";
-            if (filter === "mine" && isPublicLink) return false;
-            if (filter === "public" && !isPublicLink) return false;
+            const isPub = isPublicLink(link);
+            if (filter === "admin" && isPub) return false;
+            if (filter === "public" && !isPub) return false;
 
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase().trim();
@@ -123,21 +130,21 @@ export default function LinksTable({
 
                     <button
                         type="button"
-                        onClick={() => setFilter("mine")}
+                        onClick={() => setFilter("admin")}
                         className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                            filter === "mine"
+                            filter === "admin"
                                 ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white"
                                 : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
                         }`}
                     >
                         <ShieldCheck className="h-3.5 w-3.5 text-purple-500" />
-                        <span>My Links</span>
+                        <span>Admin Links</span>
                         <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                            filter === "mine"
+                            filter === "admin"
                                 ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
                                 : "bg-neutral-200/80 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
                         }`}>
-                            {counts.mine}
+                            {counts.admin}
                         </span>
                     </button>
 
@@ -151,7 +158,7 @@ export default function LinksTable({
                         }`}
                     >
                         <Globe className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>Public Links</span>
+                        <span>Public / Anonymous Links</span>
                         <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
                             filter === "public"
                                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
@@ -215,9 +222,9 @@ export default function LinksTable({
                     <p className="text-slate-700 dark:text-neutral-300 font-medium">No links match current filter</p>
                     <p className="text-xs text-slate-500 mt-1">
                         {filter === "public"
-                            ? "No public links have been generated yet."
-                            : filter === "mine"
-                            ? "No admin links match this criteria."
+                            ? "No public or anonymous links match this filter."
+                            : filter === "admin"
+                            ? "No admin-created links match this filter."
                             : "Try clearing your search query."}
                     </p>
                 </div>
@@ -236,7 +243,7 @@ export default function LinksTable({
                             </thead>
                             <tbody className="divide-y divide-neutral-800/50">
                                 {filteredLinks.map((link) => {
-                                    const isPublicLink = link.isPublic === true || link.createdBy === "public";
+                                    const isPub = isPublicLink(link);
                                     const isNew = link.alias === newestAlias;
                                     return (
                                         <tr
@@ -301,15 +308,15 @@ export default function LinksTable({
 
                                             {/* Creator Classifier Badge */}
                                             <td className="px-6 py-4">
-                                                {isPublicLink ? (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                                {isPub ? (
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                                         <Globe className="h-3 w-3" />
-                                                        Public
+                                                        <span>Public</span>
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-600 dark:text-purple-400">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-600 dark:text-purple-400">
                                                         <ShieldCheck className="h-3 w-3" />
-                                                        Admin
+                                                        <span>Admin</span>
                                                     </span>
                                                 )}
                                             </td>

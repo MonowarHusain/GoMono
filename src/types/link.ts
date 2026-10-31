@@ -13,6 +13,9 @@ export interface CreateLinkInput {
     maxClicks?: number | string | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
+    creatorType?: "admin" | "public";
+    userId?: string | null;
+    isAdminOnly?: boolean;
 }
 
 export interface LinkSecurityOptions {
@@ -37,6 +40,9 @@ export interface Link {
     tags?: string[];
     isPublic?: boolean;
     createdBy?: string;
+    creatorType?: "admin" | "public";
+    userId?: string | null;
+    isAdminOnly?: boolean;
     isDemo?: boolean;
 }
 

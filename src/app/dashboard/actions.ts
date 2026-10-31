@@ -78,6 +78,9 @@ export async function createLink(formData: FormData) {
             tags,      // Saved to DB
             totalClicks: 0,
             createdBy: "admin",
+            creatorType: "admin",
+            userId: "admin",
+            isAdminOnly: true,
             isPublic: false,
         });
 

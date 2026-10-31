@@ -12,6 +12,9 @@ export async function POST(req: Request) {
         let isDemoUser = false;
         let isPublic = true;
         let createdBy = "public";
+        let creatorType: "admin" | "public" = "public";
+        let userId: string | null = null;
+        let isAdminOnly = false;
 
         if (authHeader && authHeader.startsWith("Bearer ")) {
             const token = authHeader.split("Bearer ")[1]?.trim();
@@ -21,6 +24,9 @@ export async function POST(req: Request) {
                     if (decodedToken && decodedToken.uid) {
                         isPublic = false;
                         createdBy = decodedToken.uid;
+                        userId = decodedToken.uid;
+                        creatorType = "admin";
+                        isAdminOnly = true;
                         isDemoUser = decodedToken.email === "demo01@go.mono.bro.bd";
                     }
                 } catch (authErr) {
@@ -28,13 +34,26 @@ export async function POST(req: Request) {
                     console.warn("Auth token verification failed; falling back to public link creation:", authErr);
                     isPublic = true;
                     createdBy = "public";
+                    userId = null;
+                    creatorType = "public";
+                    isAdminOnly = false;
                     isDemoUser = false;
                 }
             }
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, creatorType: requestedCreatorType } = body;
+
+        // If request explicitly signals public creation, enforce public separation
+        if (requestedCreatorType === "public") {
+            isPublic = true;
+            createdBy = "public";
+            userId = null;
+            creatorType = "public";
+            isAdminOnly = false;
+            isDemoUser = false;
+        }
 
         if (!originalUrl || typeof originalUrl !== "string" || !originalUrl.trim()) {
             return NextResponse.json({ error: "Original URL is required" }, { status: 400 });
@@ -129,11 +148,22 @@ export async function POST(req: Request) {
             expiresAt: finalExpiresAt,
             tags: tagsArray,
             createdBy,
+            creatorType,
+            userId,
+            isAdminOnly,
             isPublic,
             isDemo: isDemoUser
         });
 
-        return NextResponse.json({ success: true, alias, isPublic }, { status: 201 });
+        return NextResponse.json({
+            success: true,
+            alias,
+            isPublic,
+            creatorType,
+            userId,
+            isAdminOnly,
+            domain: domain || "to.mono.bro.bd",
+        }, { status: 201 });
 
     } catch (error) {
         console.error("Error creating link:", error);
@@ -191,7 +221,10 @@ export async function GET(req: Request) {
                 }
             }
 
-            const isPublicLink = data.isPublic === true || data.createdBy === "public";
+            const isPublicLink = data.isPublic === true || data.creatorType === "public" || data.createdBy === "public" || (data.isAdminOnly === false && !data.userId);
+            const creatorType: "admin" | "public" = data.creatorType || (isPublicLink ? "public" : "admin");
+            const userId = data.userId || (isPublicLink ? null : (data.createdBy !== "admin" && data.createdBy !== "public" ? data.createdBy : null));
+            const isAdminOnly = data.isAdminOnly !== undefined ? data.isAdminOnly : !isPublicLink;
 
             return {
                 alias: data.alias,
@@ -209,6 +242,9 @@ export async function GET(req: Request) {
                 isDemo: data.isDemo || false,
                 isPublic: isPublicLink,
                 createdBy: data.createdBy || (isPublicLink ? "public" : "admin"),
+                creatorType,
+                userId,
+                isAdminOnly,
             };
         });
 

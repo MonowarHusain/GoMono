@@ -145,6 +145,9 @@ export default function PublicShortener() {
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
                 expiresAt: expiresAt || undefined,
                 password: password.trim() || undefined,
+                creatorType: "public" as const,
+                userId: null,
+                isAdminOnly: false,
             };
 
             const res = await fetch("/api/links", {
@@ -188,6 +191,9 @@ export default function PublicShortener() {
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : null,
                 isPublic: true,
                 createdBy: "public",
+                creatorType: "public",
+                userId: null,
+                isAdminOnly: false,
                 isDemo: false,
             });
 

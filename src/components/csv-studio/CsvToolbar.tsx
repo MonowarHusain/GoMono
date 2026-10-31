@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
     Upload,
     ClipboardPaste,
@@ -68,9 +68,25 @@ export default function CsvToolbar({
     onCopyTsv,
 }: CsvToolbarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const sampleRef = useRef<HTMLDivElement>(null);
+    const exportRef = useRef<HTMLDivElement>(null);
     const [isSampleOpen, setIsSampleOpen] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+
+    // Auto-close open dropdowns on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (sampleRef.current && !sampleRef.current.contains(e.target as Node)) {
+                setIsSampleOpen(false);
+            }
+            if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+                setIsExportOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -102,7 +118,7 @@ export default function CsvToolbar({
     };
 
     return (
-        <div className="flex flex-col gap-2.5 border-b border-zinc-200 bg-white/90 p-3 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/90 text-xs text-zinc-700 dark:text-zinc-300">
+        <div className="relative z-30 flex flex-col gap-2.5 border-b border-zinc-200 bg-white/95 p-3.5 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/95 text-xs text-zinc-700 dark:text-zinc-300">
             {/* Top Row: File, History, Clean, GoMono Integrations, Export */}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Left group: Import, Templates, History, Row/Col */}
@@ -139,7 +155,7 @@ export default function CsvToolbar({
                     </button>
 
                     {/* Sample Templates Dropdown */}
-                    <div className="relative">
+                    <div ref={sampleRef} className="relative">
                         <button
                             type="button"
                             onClick={() => setIsSampleOpen(!isSampleOpen)}
@@ -151,7 +167,7 @@ export default function CsvToolbar({
                         </button>
 
                         {isSampleOpen && (
-                            <div className="absolute left-0 top-full mt-1.5 z-30 w-56 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900 animate-in fade-in">
+                            <div className="absolute left-0 top-full mt-2 z-50 w-56 rounded-2xl border border-zinc-200 bg-white p-2 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 ring-1 ring-black/5 dark:ring-white/10 animate-in fade-in">
                                 <span className="block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                                     Load Sample Datasets
                                 </span>
@@ -281,7 +297,7 @@ export default function CsvToolbar({
                     <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
 
                     {/* Export Dropdown */}
-                    <div className="relative">
+                    <div ref={exportRef} className="relative">
                         <button
                             type="button"
                             onClick={() => setIsExportOpen(!isExportOpen)}
@@ -293,7 +309,7 @@ export default function CsvToolbar({
                         </button>
 
                         {isExportOpen && (
-                            <div className="absolute right-0 top-full mt-1.5 z-30 w-48 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900 animate-in fade-in">
+                            <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-2xl border border-zinc-200 bg-white p-2 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 ring-1 ring-black/5 dark:ring-white/10 animate-in fade-in">
                                 <button
                                     type="button"
                                     onClick={() => {

@@ -93,6 +93,9 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 maxClicks: rawMaxClicks,
                 expiresAt: formData.get("expiresAt"),
                 password: rawPassword,
+                creatorType: "admin" as const,
+                userId: currentUser.uid,
+                isAdminOnly: true,
             };
 
             const res = await fetch("/api/links", {
@@ -143,6 +146,9 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 tags: parsedTags,
                 isPublic: false,
                 createdBy: currentUser.uid,
+                creatorType: "admin",
+                userId: currentUser.uid,
+                isAdminOnly: true,
                 isDemo: currentUser.email === "demo01@go.mono.bro.bd",
             };
 

@@ -101,8 +101,8 @@ export default function PublicCsvStudioPage() {
                     </p>
                 </div>
 
-                {/* Studio Card Container */}
-                <div className="rounded-3xl border border-zinc-200/90 bg-white/90 dark:border-zinc-800/80 dark:bg-zinc-950/80 p-4 sm:p-6 shadow-xl dark:shadow-2xl backdrop-blur-xl">
+                {/* Standalone Studio Workspace */}
+                <div className="w-full">
                     <CsvStudio />
                 </div>
             </main>

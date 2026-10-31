@@ -114,6 +114,11 @@ export default function DashboardPage() {
                                     }
                                 }
 
+                                const isPublicLink = data.isPublic === true || data.creatorType === "public" || data.createdBy === "public" || (data.isAdminOnly === false && !data.userId);
+                                const creatorType: "admin" | "public" = data.creatorType || (isPublicLink ? "public" : "admin");
+                                const userId = data.userId || (isPublicLink ? null : (data.createdBy !== "admin" && data.createdBy !== "public" ? data.createdBy : null));
+                                const isAdminOnly = data.isAdminOnly !== undefined ? data.isAdminOnly : !isPublicLink;
+
                                 return {
                                     alias: data.alias || docSnap.id,
                                     originalUrl: data.originalUrl || "",
@@ -125,8 +130,11 @@ export default function DashboardPage() {
                                     isProtected: Boolean(data.password),
                                     maxClicks: data.maxClicks ?? null,
                                     tags: Array.isArray(data.tags) ? data.tags : [],
-                                    isPublic: data.isPublic === true || data.createdBy === "public",
-                                    createdBy: data.createdBy,
+                                    isPublic: isPublicLink,
+                                    createdBy: data.createdBy || (isPublicLink ? "public" : "admin"),
+                                    creatorType,
+                                    userId,
+                                    isAdminOnly,
                                     isDemo: data.isDemo,
                                 };
                             });
@@ -245,8 +253,9 @@ export default function DashboardPage() {
     // Calculate Overview Metrics dynamically from the current links list
     const totalClicks = links.reduce((acc, curr) => acc + (curr.totalClicks || 0), 0);
     const activeLinks = links.length;
-    const publicLinks = links.filter((l) => l.isPublic || l.createdBy === "public").length;
-    const adminLinks = activeLinks - publicLinks;
+    const isPublicLink = (l: Link) => l.isPublic === true || l.creatorType === "public" || l.createdBy === "public" || (l.isAdminOnly === false && !l.userId);
+    const publicLinks = links.filter(isPublicLink).length;
+    const adminLinks = links.filter((l) => !isPublicLink(l)).length;
     const uniqueVisitors = 0;
 
     // Generate the last 7 days of trailing data deterministically

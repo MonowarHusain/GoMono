@@ -1,45 +1,85 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import CreateLinkForm from "@/components/dashboard/CreateLinkForm";
 import LinksTable, { type Link } from "@/components/dashboard/LinksTable";
 import QuickActions from "@/components/dashboard/QuickActions";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 import { Activity, Link2, Users, Layers } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+    GOMONO_LINK_CREATED_EVENT,
+    GOMONO_LINK_DELETED_EVENT,
+    type LinkCreatedPayload,
+} from "@/lib/events";
 
 export default function DashboardPage() {
     const [links, setLinks] = useState<Link[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [newestAlias, setNewestAlias] = useState<string | null>(null);
     const [userName, setUserName] = useState("Monowar");
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
-    // NEW: Extracted fetch logic so it can be called instantly when a link is created
-    const fetchLinks = async () => {
+    const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const hasLoadedInitialSnapshotRef = useRef(false);
+
+    // REST fallback fetcher — called action-triggered (or when Firestore snapshot fails)
+    const fetchLinks = useCallback(async (isSilent = false) => {
         const user = auth.currentUser;
         if (!user) return;
 
+        if (!isSilent) setIsRefreshing(true);
         try {
             const token = await user.getIdToken();
             const res = await fetch("/api/links", {
                 headers: {
-                    "Authorization": `Bearer ${token}`
-                }
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
             if (res.ok) {
                 const data = await res.json();
-                setLinks(data.links);
+                if (Array.isArray(data.links)) {
+                    setLinks(data.links);
+                }
             }
         } catch (error) {
             console.error("Failed to fetch links", error);
+        } finally {
+            if (!isSilent) setIsRefreshing(false);
         }
-    };
+    }, []);
 
+    // Action-triggered optimistic insertion with auto-clearing highlight
+    const handleLinkCreated = useCallback((newLink?: Link) => {
+        if (newLink && newLink.alias) {
+            setNewestAlias(newLink.alias);
+            if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+            highlightTimerRef.current = setTimeout(() => {
+                setNewestAlias((cur) => (cur === newLink.alias ? null : cur));
+            }, 4500);
+
+            // Optimistically prepend to links array (deduplicating by alias)
+            setLinks((prev) => [newLink, ...prev.filter((l) => l.alias !== newLink.alias)]);
+        }
+        // Silently sync in background to guarantee database parity
+        fetchLinks(true);
+    }, [fetchLinks]);
+
+    // Optimistic deletion
+    const handleDeleteLink = useCallback((alias: string) => {
+        setLinks((prev) => prev.filter((l) => l.alias !== alias));
+    }, []);
+
+    // Setup Auth and Scoped Real-time Firestore Listener
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        let unsubscribeSnapshot: (() => void) | null = null;
+
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 // Dynamic greeting
                 if (user.email === "demo01@go.mono.bro.bd") {
@@ -48,16 +88,159 @@ export default function DashboardPage() {
                     setUserName("Monowar");
                 }
 
-                // Initial load of links
-                await fetchLinks();
+                // Initial fetch via REST to ensure fast display
+                await fetchLinks(false);
+
+                // Attach real-time listener scoped to role
+                try {
+                    const isDemoUser = user.email === "demo01@go.mono.bro.bd";
+                    const linksCol = collection(db, "links");
+                    const q = isDemoUser
+                        ? query(linksCol, where("createdBy", "==", user.uid))
+                        : linksCol;
+
+                    unsubscribeSnapshot = onSnapshot(
+                        q,
+                        (snapshot) => {
+                            const mappedLinks: Link[] = snapshot.docs.map((docSnap) => {
+                                const data = docSnap.data();
+
+                                let safeCreatedAt = new Date().toISOString();
+                                if (data.createdAt) {
+                                    if (typeof data.createdAt.toDate === "function") {
+                                        safeCreatedAt = data.createdAt.toDate().toISOString();
+                                    } else {
+                                        safeCreatedAt = new Date(data.createdAt).toISOString();
+                                    }
+                                }
+
+                                return {
+                                    alias: data.alias || docSnap.id,
+                                    originalUrl: data.originalUrl || "",
+                                    domain: data.domain || "go.mono.bro.bd",
+                                    totalClicks: typeof data.totalClicks === "number" ? data.totalClicks : 0,
+                                    createdAt: safeCreatedAt,
+                                    isProtected: Boolean(data.password),
+                                    maxClicks: data.maxClicks ?? null,
+                                    tags: Array.isArray(data.tags) ? data.tags : [],
+                                    isPublic: data.isPublic === true || data.createdBy === "public",
+                                    createdBy: data.createdBy,
+                                    isDemo: data.isDemo,
+                                };
+                            });
+
+                            // Sort descending by creation date
+                            mappedLinks.sort(
+                                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                            );
+
+                            // Highlight newly added items if not the initial load
+                            if (hasLoadedInitialSnapshotRef.current) {
+                                snapshot.docChanges().forEach((change) => {
+                                    if (change.type === "added") {
+                                        const addedAlias = change.doc.id;
+                                        setNewestAlias(addedAlias);
+                                        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+                                        highlightTimerRef.current = setTimeout(() => {
+                                            setNewestAlias((cur) => (cur === addedAlias ? null : cur));
+                                        }, 4500);
+                                    }
+                                });
+                            } else {
+                                hasLoadedInitialSnapshotRef.current = true;
+                            }
+
+                            setLinks(mappedLinks);
+                            setLoading(false);
+                        },
+                        (error) => {
+                            console.warn("Firestore snapshot subscription fallback to REST fetch:", error);
+                            fetchLinks(true);
+                            setLoading(false);
+                        }
+                    );
+                } catch (err) {
+                    console.warn("Could not bind Firestore onSnapshot:", err);
+                    fetchLinks(false);
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
             }
-            setLoading(false);
         });
 
-        return () => unsubscribe();
-    }, []);
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+        };
+    }, [fetchLinks]);
 
-    // Calculate Overview Metrics dynamically from the filtered links
+    // Cross-Tab and In-Page Event Listeners (BroadcastChannel + DOM CustomEvents)
+    useEffect(() => {
+        const handleCreatedEvent = (e: Event) => {
+            const customEvent = e as CustomEvent<LinkCreatedPayload>;
+            const detail = customEvent.detail;
+            if (detail?.alias) {
+                setNewestAlias(detail.alias);
+                if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+                highlightTimerRef.current = setTimeout(() => {
+                    setNewestAlias((cur) => (cur === detail.alias ? null : cur));
+                }, 4500);
+            }
+            fetchLinks(true);
+        };
+
+        const handleDeletedEvent = (e: Event) => {
+            const customEvent = e as CustomEvent<{ alias: string }>;
+            const alias = customEvent.detail?.alias;
+            if (alias) {
+                setLinks((prev) => prev.filter((l) => l.alias !== alias));
+            }
+            fetchLinks(true);
+        };
+
+        window.addEventListener(GOMONO_LINK_CREATED_EVENT, handleCreatedEvent);
+        window.addEventListener(GOMONO_LINK_DELETED_EVENT, handleDeletedEvent);
+
+        let bc: BroadcastChannel | null = null;
+        if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+            try {
+                bc = new BroadcastChannel("gomono_links_channel");
+                bc.onmessage = (event) => {
+                    if (event.data?.type === "LINK_CREATED") {
+                        const payload = event.data?.payload;
+                        if (payload?.alias) {
+                            setNewestAlias(payload.alias);
+                            if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+                            highlightTimerRef.current = setTimeout(() => {
+                                setNewestAlias((cur) => (cur === payload.alias ? null : cur));
+                            }, 4500);
+                        }
+                        fetchLinks(true);
+                    } else if (event.data?.type === "LINK_DELETED") {
+                        const alias = event.data?.alias;
+                        if (alias) {
+                            setLinks((prev) => prev.filter((l) => l.alias !== alias));
+                        }
+                        fetchLinks(true);
+                    }
+                };
+            } catch (err) {
+                console.warn("BroadcastChannel error:", err);
+            }
+        }
+
+        return () => {
+            window.removeEventListener(GOMONO_LINK_CREATED_EVENT, handleCreatedEvent);
+            window.removeEventListener(GOMONO_LINK_DELETED_EVENT, handleDeletedEvent);
+            if (bc) {
+                bc.close();
+            }
+        };
+    }, [fetchLinks]);
+
+    // Calculate Overview Metrics dynamically from the current links list
     const totalClicks = links.reduce((acc, curr) => acc + (curr.totalClicks || 0), 0);
     const activeLinks = links.length;
     const publicLinks = links.filter((l) => l.isPublic || l.createdBy === "public").length;
@@ -162,7 +345,7 @@ export default function DashboardPage() {
             {/* 4. Quick Actions Layout */}
             <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Quick Actions</h2>
-                <QuickActions onLinkCreated={fetchLinks} />
+                <QuickActions onLinkCreated={() => fetchLinks(true)} />
             </section>
 
             {/* 5. The Creation Form */}
@@ -182,21 +365,25 @@ export default function DashboardPage() {
                         <span className="rounded-md bg-indigo-200/60 px-1.5 py-0.5 text-[10px] font-bold text-indigo-800 dark:bg-indigo-400/20 dark:text-indigo-300">Batch</span>
                     </button>
                 </div>
-                {/* FIX: Pass the fetchLinks function directly into the form */}
-                <CreateLinkForm onLinkCreated={fetchLinks} />
+                <CreateLinkForm onLinkCreated={handleLinkCreated} />
             </section>
 
             {/* 6. The Data Table */}
             <section id="links-table" className="scroll-mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm overflow-hidden dark:border-neutral-800 dark:bg-neutral-900/50">
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Recent Links</h2>
-                <LinksTable initialLinks={links} />
+                <LinksTable
+                    initialLinks={links}
+                    newestAlias={newestAlias}
+                    isRefreshing={isRefreshing}
+                    onDelete={handleDeleteLink}
+                />
             </section>
 
             {/* Bulk Shortener Modal */}
             <BulkShortenerModal
                 isOpen={isBulkModalOpen}
                 onClose={() => setIsBulkModalOpen(false)}
-                onLinksCreated={fetchLinks}
+                onLinksCreated={() => fetchLinks(true)}
             />
         </div>
     );

@@ -8,9 +8,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
+import { type Link } from "@/components/dashboard/LinksTable";
+import { notifyLinkCreated } from "@/lib/events";
 
-// NEW: Added onLinkCreated to the component props
-export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () => void }) {
+// Accept onLinkCreated with optional newly created Link item
+export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (newLink?: Link) => void }) {
     // UI Toggles
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     const [isUtmOpen, setIsUtmOpen] = useState(false);
@@ -69,14 +71,21 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () =
                 }
             }
 
+            const rawTags = formData.get("tags") as string | null;
+            const parsedTags = rawTags
+                ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
+                : [];
+            const rawMaxClicks = formData.get("maxClicks") as string | null;
+            const rawPassword = formData.get("password") as string | null;
+
             const data = {
                 originalUrl: finalOriginalUrl,
                 customAlias: formData.get("customAlias"),
                 domain: selectedDomain,
-                tags: formData.get("tags"),
-                maxClicks: formData.get("maxClicks"),
+                tags: rawTags,
+                maxClicks: rawMaxClicks,
                 expiresAt: formData.get("expiresAt"),
-                password: formData.get("password"),
+                password: rawPassword,
             };
 
             const res = await fetch("/api/links", {
@@ -110,10 +119,28 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () =
             setIsAdvancedOpen(false);
             setIsUtmOpen(false);
 
-            // NEW: Instantly trigger the parent dashboard to fetch the new links
+            // Construct optimistic link payload
+            const newLinkItem: Link = {
+                alias: responseData.alias,
+                originalUrl: finalOriginalUrl,
+                domain: selectedDomain,
+                totalClicks: 0,
+                createdAt: new Date().toISOString(),
+                isProtected: Boolean(rawPassword),
+                maxClicks: rawMaxClicks ? parseInt(rawMaxClicks, 10) : null,
+                tags: parsedTags,
+                isPublic: false,
+                createdBy: currentUser.uid,
+                isDemo: currentUser.email === "demo01@go.mono.bro.bd",
+            };
+
+            // NEW: Instantly trigger the parent dashboard with the newly created link
             if (onLinkCreated) {
-                onLinkCreated();
+                onLinkCreated(newLinkItem);
             }
+
+            // Broadcast to other tabs & listeners
+            notifyLinkCreated(newLinkItem);
 
         } catch (error: unknown) {
             console.error(error);

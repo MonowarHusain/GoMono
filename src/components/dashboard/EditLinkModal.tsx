@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateLink } from "@/app/dashboard/actions";
 import { toast } from "sonner";
 import { Link2, Shield, Clock, Loader2, Tags, Flame, X } from "lucide-react";
+import { notifyLinkCreated } from "@/lib/events";
 
 type LinkData = {
     alias: string;
@@ -39,6 +40,10 @@ export default function EditLinkModal({ link, onClose }: { link: LinkData; onClo
             toast.error(result.error);
         } else {
             toast.success(`Link updated successfully!`);
+            notifyLinkCreated({
+                alias: link.alias,
+                originalUrl: (formData.get("originalUrl") as string) || link.originalUrl,
+            });
             onClose();
         }
 

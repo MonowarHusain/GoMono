@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
+import { notifyLinkCreated } from "@/lib/events";
 
 interface ShortenResult {
     shortUrl: string;
@@ -146,6 +147,18 @@ export default function PublicShortener() {
                 shortUrl: fullShortUrl,
                 originalUrl: originalUrl.trim(),
                 alias: data.alias,
+            });
+
+            // Broadcast link creation to instantly update open admin dashboard views
+            notifyLinkCreated({
+                alias: data.alias,
+                originalUrl: originalUrl.trim(),
+                domain: cleanDomain,
+                totalClicks: 0,
+                createdAt: new Date().toISOString(),
+                isPublic: true,
+                createdBy: "public",
+                isDemo: false,
             });
 
             toast.success("Short link created successfully!", { id: toastId });

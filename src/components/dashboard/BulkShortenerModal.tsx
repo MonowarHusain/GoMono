@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import QRCodeModal from "./QRCodeModal";
+import { notifyLinkCreated } from "@/lib/events";
 
 const MAX_BATCH_LIMIT = 50;
 
@@ -353,6 +354,20 @@ export default function BulkShortenerModal({
             toast.success(`Successfully generated all ${successCount} short links!`);
         } else {
             toast.info(`Batch finished: ${successCount} succeeded, ${failCount} failed.`);
+        }
+
+        // Notify and sync dashboard views
+        if (successCount > 0) {
+            const firstSuccess = updatedResults.find((r) => r.status === "success" && r.alias);
+            if (firstSuccess) {
+                notifyLinkCreated({
+                    alias: firstSuccess.alias!,
+                    originalUrl: firstSuccess.formattedUrl || firstSuccess.originalUrl,
+                    domain: cleanDomain,
+                });
+            } else {
+                notifyLinkCreated();
+            }
         }
 
         // Trigger parent dashboard refresh if available

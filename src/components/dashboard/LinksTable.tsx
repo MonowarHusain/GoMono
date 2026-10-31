@@ -9,6 +9,7 @@ import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
     ShieldAlert, Pencil, Globe, ShieldCheck, Search, X
 } from "lucide-react";
+import { notifyLinkDeleted } from "@/lib/events";
 
 export type Link = {
     alias: string;
@@ -26,7 +27,19 @@ export type Link = {
 
 type FilterType = "all" | "mine" | "public";
 
-export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
+export interface LinksTableProps {
+    initialLinks: Link[];
+    newestAlias?: string | null;
+    isRefreshing?: boolean;
+    onDelete?: (alias: string) => void;
+}
+
+export default function LinksTable({
+    initialLinks,
+    newestAlias,
+    isRefreshing = false,
+    onDelete,
+}: LinksTableProps) {
     const [activeQR, setActiveQR] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingLink, setEditingLink] = useState<Link | null>(null);
@@ -82,14 +95,19 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
     const handleDelete = async (alias: string) => {
         setIsDeleting(alias);
         const result = await deleteLink(alias);
-        if (result?.error) toast.error(result.error);
-        else toast.success(`Link /${alias} deleted successfully`);
+        if (result?.error) {
+            toast.error(result.error);
+        } else {
+            toast.success(`Link /${alias} deleted successfully`);
+            notifyLinkDeleted(alias);
+            onDelete?.(alias);
+        }
         setIsDeleting(null);
     };
 
     return (
         <div className="space-y-4">
-            {/* Filter Tabs and Search Bar */}
+            {/* Filter Tabs, Live Sync Indicator and Search Bar */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {/* Tabs */}
                 <div className="inline-flex rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900/60">
@@ -153,25 +171,39 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
                     </button>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative w-full sm:w-64">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search alias or URL..."
-                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-1.5 pl-8 pr-8 text-xs outline-none transition-all focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
-                    />
-                    {searchQuery && (
-                        <button
-                            type="button"
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"
-                        >
-                            <X className="h-3 w-3" />
-                        </button>
-                    )}
+                <div className="flex items-center gap-3">
+                    {/* Live Sync Status Indicator */}
+                    <div
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-[11px] font-medium text-neutral-600 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400"
+                        title="Real-time link synchronization active"
+                    >
+                        <span className="relative flex h-2 w-2">
+                            <span className={`absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${isRefreshing ? "animate-ping" : "animate-pulse"}`} />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        </span>
+                        <span>{isRefreshing ? "Syncing..." : "Live"}</span>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-56">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search alias or URL..."
+                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-1.5 pl-8 pr-8 text-xs outline-none transition-all focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"
+                            >
+                                <X className="h-3 w-3" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -214,11 +246,24 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
                             <tbody className="divide-y divide-neutral-800/50">
                                 {filteredLinks.map((link) => {
                                     const isPublicLink = link.isPublic === true || link.createdBy === "public";
+                                    const isNew = link.alias === newestAlias;
                                     return (
-                                        <tr key={link.alias} className="group transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800/30">
+                                        <tr
+                                            key={link.alias}
+                                            className={`group transition-all duration-500 ${
+                                                isNew
+                                                    ? "bg-emerald-500/10 dark:bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/40"
+                                                    : "hover:bg-slate-50 dark:hover:bg-neutral-800/30"
+                                            }`}
+                                        >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold text-slate-900 dark:text-white">/{link.alias}</span>
+                                                    {isNew && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-pulse">
+                                                            NEW
+                                                        </span>
+                                                    )}
                                                     {link.isProtected && (
                                                         <span title="Password Protected" className="flex items-center">
                                                             <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />

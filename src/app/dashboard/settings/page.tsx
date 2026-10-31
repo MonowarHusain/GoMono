@@ -1,4 +1,4 @@
-import { Settings, User, Globe, Shield } from "lucide-react";
+import { User, Globe, Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 

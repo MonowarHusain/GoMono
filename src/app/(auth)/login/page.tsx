@@ -29,8 +29,8 @@ export default function LoginPage() {
             }
 
             router.push("/dashboard");
-        } catch (err: any) {
-            setError(err.message || "Failed to sign in.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to sign in.");
             setIsLoading(false);
         }
     };
@@ -63,7 +63,7 @@ export default function LoginPage() {
             // 4. Use replace instead of push to prevent back-button loops
             router.replace("/dashboard");
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Auth Error:", err);
             setError("Demo account is currently unavailable.");
             setIsLoading(false);

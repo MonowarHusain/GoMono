@@ -5,7 +5,8 @@ import CreateLinkForm from "@/components/dashboard/CreateLinkForm";
 import LinksTable, { type Link } from "@/components/dashboard/LinksTable";
 import QuickActions from "@/components/dashboard/QuickActions";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
-import { Activity, Link2, Users } from "lucide-react";
+import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
+import { Activity, Link2, Users, Layers } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
     const [links, setLinks] = useState<Link[]>([]);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState("Monowar");
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
     // NEW: Extracted fetch logic so it can be called instantly when a link is created
     const fetchLinks = async () => {
@@ -160,12 +162,26 @@ export default function DashboardPage() {
             {/* 4. Quick Actions Layout */}
             <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Quick Actions</h2>
-                <QuickActions />
+                <QuickActions onLinkCreated={fetchLinks} />
             </section>
 
             {/* 5. The Creation Form */}
             <section id="create-link-section" className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/50">
-                <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Shorten a new URL</h2>
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Shorten a new URL</h2>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">Create trackable, edge-accelerated short links</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsBulkModalOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3.5 py-2 text-xs font-semibold text-indigo-700 transition-all hover:bg-indigo-100 hover:scale-[1.02] active:scale-[0.98] dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                    >
+                        <Layers className="h-4 w-4" />
+                        <span>Bulk Shortener</span>
+                        <span className="rounded-md bg-indigo-200/60 px-1.5 py-0.5 text-[10px] font-bold text-indigo-800 dark:bg-indigo-400/20 dark:text-indigo-300">Batch</span>
+                    </button>
+                </div>
                 {/* FIX: Pass the fetchLinks function directly into the form */}
                 <CreateLinkForm onLinkCreated={fetchLinks} />
             </section>
@@ -175,6 +191,13 @@ export default function DashboardPage() {
                 <h2 className="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Recent Links</h2>
                 <LinksTable initialLinks={links} />
             </section>
+
+            {/* Bulk Shortener Modal */}
+            <BulkShortenerModal
+                isOpen={isBulkModalOpen}
+                onClose={() => setIsBulkModalOpen(false)}
+                onLinksCreated={fetchLinks}
+            />
         </div>
     );
 }

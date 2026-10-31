@@ -4,9 +4,10 @@ import { useState } from "react";
 import {
     Link2, Sparkles, Globe, ChevronDown, ChevronUp,
     Flame, Clock, Lock, Copy, Check, Download, ExternalLink,
-    ArrowRight, Loader2, RefreshCw
+    ArrowRight, Loader2, RefreshCw, Layers
 } from "lucide-react";
 import { toast } from "sonner";
+import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 
 interface ShortenResult {
     shortUrl: string;
@@ -16,6 +17,7 @@ interface ShortenResult {
 
 export default function PublicShortener() {
     const [loading, setLoading] = useState(false);
+    const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [originalUrl, setOriginalUrl] = useState("");
     const [customAlias, setCustomAlias] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("to.mono.bro.bd");
@@ -137,6 +139,28 @@ export default function PublicShortener() {
                 <div className="relative rounded-3xl border border-neutral-800 bg-neutral-900/70 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
                     {/* Glowing highlight */}
                     <div className="pointer-events-none absolute -top-px left-1/2 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+
+                    {/* Mode Switcher Banner */}
+                    <div className="mb-5 flex items-center justify-between border-b border-neutral-800 pb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 rounded-full bg-blue-500" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-300">
+                                Single Link Mode
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setIsBulkOpen(true)}
+                            className="group inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300 transition-all hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-white"
+                        >
+                            <Layers className="h-3.5 w-3.5 text-blue-400 transition-transform group-hover:scale-110" />
+                            <span>Bulk Shortener</span>
+                            <span className="rounded bg-blue-500/20 px-1 py-0.5 text-[10px] font-bold text-blue-300">
+                                Up to 50
+                            </span>
+                        </button>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* URL Input Box */}
@@ -267,6 +291,18 @@ export default function PublicShortener() {
                             )}
                         </button>
                     </form>
+
+                    {/* Secondary bulk prompt */}
+                    <div className="mt-4 pt-3 border-t border-neutral-800 text-center">
+                        <button
+                            type="button"
+                            onClick={() => setIsBulkOpen(true)}
+                            className="inline-flex items-center gap-1.5 text-xs text-neutral-400 transition-colors hover:text-blue-400"
+                        >
+                            <Layers className="h-3.5 w-3.5 text-blue-400" />
+                            <span>Need to shorten up to 50 links at once? Try Bulk Shortener →</span>
+                        </button>
+                    </div>
                 </div>
             ) : (
                 /* Success Card */
@@ -347,6 +383,12 @@ export default function PublicShortener() {
                     </div>
                 </div>
             )}
+
+            {/* Bulk Shortener Modal */}
+            <BulkShortenerModal
+                isOpen={isBulkOpen}
+                onClose={() => setIsBulkOpen(false)}
+            />
         </div>
     );
 }

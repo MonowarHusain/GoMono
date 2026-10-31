@@ -24,7 +24,6 @@ export default function AnalyticsChart({ data }: { data: ChartData[] }) {
     const gridColor = isDark ? "#262626" : "#e5e5e5"; // neutral-800 : neutral-200
     const textColor = isDark ? "#a3a3a3" : "#737373"; // neutral-400 : neutral-500
     const strokeColor = "#3b82f6"; // blue-500
-    const fillColor = isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)";
 
     return (
         <div className="h-[300px] w-full">

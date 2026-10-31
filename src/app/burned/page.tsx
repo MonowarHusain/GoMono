@@ -23,7 +23,7 @@ export default function BurnedPage() {
                 </h1>
 
                 <p className="mb-8 text-sm text-neutral-500 dark:text-neutral-400">
-                    This link had a strict "burn after reading" limit. The maximum number of allowed visits has been reached, and the destination URL has been permanently wiped from access.
+                    This link had a strict &quot;burn after reading&quot; limit. The maximum number of allowed visits has been reached, and the destination URL has been permanently wiped from access.
                 </p>
 
                 {/* Security Badge */}

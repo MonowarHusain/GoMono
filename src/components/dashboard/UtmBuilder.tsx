@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Link2, Copy, Zap, ArrowRight, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Link2, Zap, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createLink } from "@/app/dashboard/actions";
 
@@ -11,15 +11,12 @@ export default function UtmBuilder() {
     const [medium, setMedium] = useState("");
     const [campaign, setCampaign] = useState("");
     const [alias, setAlias] = useState("");
-
-    const [generatedUrl, setGeneratedUrl] = useState("");
     const [isShortening, setIsShortening] = useState(false);
 
     // Auto-generate the UTM URL whenever inputs change
-    useEffect(() => {
+    const generatedUrl = useMemo(() => {
         if (!baseUrl) {
-            setGeneratedUrl("");
-            return;
+            return "";
         }
 
         try {
@@ -28,9 +25,9 @@ export default function UtmBuilder() {
             if (medium) urlObj.searchParams.set("utm_medium", medium);
             if (campaign) urlObj.searchParams.set("utm_campaign", campaign);
 
-            setGeneratedUrl(urlObj.toString());
-        } catch (e) {
-            setGeneratedUrl("Waiting for a valid URL...");
+            return urlObj.toString();
+        } catch {
+            return "Waiting for a valid URL...";
         }
     }, [baseUrl, source, medium, campaign]);
 

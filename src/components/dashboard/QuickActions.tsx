@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     PlusCircle, BarChart3, Settings, QrCode, X, Download, Link2,
-    Wifi, MapPin, Mail, Type, Palette, LayoutTemplate
+    Wifi, MapPin, Mail, Type, Palette, LayoutTemplate, Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
+import BulkShortenerModal from "./BulkShortenerModal";
 
 type QrType = "url" | "text" | "wifi" | "email" | "location";
 type QrVariant = "standard" | "framed";
 
-export default function QuickActions() {
+export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => void }) {
     const router = useRouter();
 
     // --- Modal & Configuration State ---
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [qrType, setQrType] = useState<QrType>("url");
     const [qrVariant, setQrVariant] = useState<QrVariant>("framed");
 
@@ -43,16 +45,16 @@ export default function QuickActions() {
     const [qrBgColor, setQrBgColor] = useState("#ffffff");
     const [frameText, setFrameText] = useState("SCAN ME");
 
-    // Dynamically update the frame text when the QR Type changes
-    useEffect(() => {
-        switch (qrType) {
+    const handleQrTypeChange = (type: QrType) => {
+        setQrType(type);
+        switch (type) {
             case "url": setFrameText("SCAN ME"); break;
             case "wifi": setFrameText("CONNECT WIFI"); break;
             case "text": setFrameText("READ MESSAGE"); break;
             case "email": setFrameText("SEND EMAIL"); break;
             case "location": setFrameText("FIND LOCATION"); break;
         }
-    }, [qrType]);
+    };
 
     // --- Existing Quick Actions Logic ---
     const handleScrollToCreate = () => {
@@ -80,7 +82,7 @@ export default function QuickActions() {
             window.URL.revokeObjectURL(url);
 
             toast.success("Export complete!", { id: loadingToast });
-        } catch (error) {
+        } catch {
             toast.error("Failed to export statistics.", { id: loadingToast });
         }
     };
@@ -208,7 +210,7 @@ export default function QuickActions() {
     return (
         <>
             {/* Quick Actions Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 {/* 1. Create Link */}
                 <button
                     onClick={handleScrollToCreate}
@@ -217,10 +219,27 @@ export default function QuickActions() {
                     <div className="rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
                         <PlusCircle className="h-5 w-5" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Create Link</span>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Create Link</span>
+                        <span className="text-[10px] text-neutral-400">Single short URL</span>
+                    </div>
                 </button>
 
-                {/* 2. QR Code Generator */}
+                {/* 2. Bulk Shortener */}
+                <button
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-indigo-500/50 hover:bg-indigo-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-900/10"
+                >
+                    <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        <Layers className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Bulk Shorten</span>
+                        <span className="text-[10px] text-neutral-400">Batch up to 50 URLs</span>
+                    </div>
+                </button>
+
+                {/* 3. QR Code Generator */}
                 <button
                     onClick={() => setIsQrModalOpen(true)}
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-purple-500/50 hover:bg-purple-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-purple-500/50 dark:hover:bg-purple-900/10"
@@ -228,10 +247,13 @@ export default function QuickActions() {
                     <div className="rounded-lg bg-purple-100 p-2 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">
                         <QrCode className="h-5 w-5" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">QR Studio</span>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">QR Studio</span>
+                        <span className="text-[10px] text-neutral-400">Custom styled codes</span>
+                    </div>
                 </button>
 
-                {/* 3. Export Stats */}
+                {/* 4. Export Stats */}
                 <button
                     onClick={handleExport}
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-500/50 hover:bg-emerald-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-900/10"
@@ -239,10 +261,13 @@ export default function QuickActions() {
                     <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
                         <BarChart3 className="h-5 w-5" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Export Stats</span>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Export Stats</span>
+                        <span className="text-[10px] text-neutral-400">Download database CSV</span>
+                    </div>
                 </button>
 
-                {/* 4. Settings */}
+                {/* 5. Settings */}
                 <button
                     onClick={handleSettings}
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-neutral-500/50 dark:hover:bg-neutral-800"
@@ -250,9 +275,21 @@ export default function QuickActions() {
                     <div className="rounded-lg bg-neutral-100 p-2 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                         <Settings className="h-5 w-5" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Settings</span>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Settings</span>
+                        <span className="text-[10px] text-neutral-400">Account & preferences</span>
+                    </div>
                 </button>
             </div>
+
+            {/* Bulk Shortener Modal */}
+            {isBulkModalOpen && (
+                <BulkShortenerModal
+                    isOpen={isBulkModalOpen}
+                    onClose={() => setIsBulkModalOpen(false)}
+                    onLinksCreated={onLinkCreated}
+                />
+            )}
 
             {/* Advanced QR Studio Modal */}
             {isQrModalOpen && (
@@ -274,19 +311,19 @@ export default function QuickActions() {
 
                         {/* QR Type Selector Tabs */}
                         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                            <button onClick={() => setQrType("url")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "url" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
+                            <button onClick={() => handleQrTypeChange("url")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "url" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
                                 <Link2 className="h-4 w-4" /> URL
                             </button>
-                            <button onClick={() => setQrType("wifi")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "wifi" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
+                            <button onClick={() => handleQrTypeChange("wifi")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "wifi" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
                                 <Wifi className="h-4 w-4" /> Wi-Fi
                             </button>
-                            <button onClick={() => setQrType("text")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "text" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
+                            <button onClick={() => handleQrTypeChange("text")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "text" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
                                 <Type className="h-4 w-4" /> Text
                             </button>
-                            <button onClick={() => setQrType("email")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "email" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
+                            <button onClick={() => handleQrTypeChange("email")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "email" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
                                 <Mail className="h-4 w-4" /> Email
                             </button>
-                            <button onClick={() => setQrType("location")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "location" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
+                            <button onClick={() => handleQrTypeChange("location")} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${qrType === "location" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"}`}>
                                 <MapPin className="h-4 w-4" /> Location
                             </button>
                         </div>

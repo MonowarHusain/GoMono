@@ -7,13 +7,10 @@ import {
     Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
 // NEW: Added onLinkCreated to the component props
 export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () => void }) {
-    const router = useRouter();
-
     // UI Toggles
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     const [isUtmOpen, setIsUtmOpen] = useState(false);
@@ -65,7 +62,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () =
                     if (utmTerm) urlObj.searchParams.set("utm_term", utmTerm as string);
                     if (utmContent) urlObj.searchParams.set("utm_content", utmContent as string);
                     finalOriginalUrl = urlObj.toString();
-                } catch (error) {
+                } catch {
                     toast.error("Please enter a valid URL to attach UTM parameters.", { id: toastId });
                     setLoading(false);
                     return;
@@ -118,9 +115,10 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () =
                 onLinkCreated();
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.message === "Alias already taken"
+            const isTaken = error instanceof Error && error.message === "Alias already taken";
+            toast.error(isTaken
                 ? "That custom alias is already in use!"
                 : "Error creating link. Check the console.",
                 { id: toastId }
@@ -156,7 +154,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: () =
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
+        } catch {
             window.open(qrUrl, '_blank');
         }
     };

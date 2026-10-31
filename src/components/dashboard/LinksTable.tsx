@@ -1,14 +1,16 @@
 "use client";
 
 import { deleteLink } from "@/app/dashboard/actions";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import QRCodeModal from "./QRCodeModal";
 import EditLinkModal from "./EditLinkModal";
 import { toast } from "sonner";
-import { Copy, QrCode, Trash2, ExternalLink, MousePointerClick, ShieldAlert, Pencil } from "lucide-react";
+import {
+    Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
+    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X
+} from "lucide-react";
 
-// Added 'domain' to the type definition
-type Link = {
+export type Link = {
     alias: string;
     originalUrl: string;
     domain?: string;
@@ -17,12 +19,55 @@ type Link = {
     isProtected?: boolean;
     maxClicks?: number | null;
     tags?: string[];
+    isPublic?: boolean;
+    createdBy?: string;
+    isDemo?: boolean;
 };
+
+type FilterType = "all" | "mine" | "public";
 
 export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
     const [activeQR, setActiveQR] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingLink, setEditingLink] = useState<Link | null>(null);
+    const [filter, setFilter] = useState<FilterType>("all");
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Calculate count totals
+    const counts = useMemo(() => {
+        let mine = 0;
+        let pub = 0;
+        initialLinks.forEach((l) => {
+            if (l.isPublic || l.createdBy === "public") {
+                pub++;
+            } else {
+                mine++;
+            }
+        });
+        return {
+            all: initialLinks.length,
+            mine,
+            public: pub
+        };
+    }, [initialLinks]);
+
+    // Filter and search links
+    const filteredLinks = useMemo(() => {
+        return initialLinks.filter((link) => {
+            const isPublicLink = link.isPublic === true || link.createdBy === "public";
+            if (filter === "mine" && isPublicLink) return false;
+            if (filter === "public" && !isPublicLink) return false;
+
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase().trim();
+                const matchAlias = link.alias.toLowerCase().includes(query);
+                const matchUrl = link.originalUrl.toLowerCase().includes(query);
+                const matchTag = link.tags?.some((t) => t.toLowerCase().includes(query));
+                return matchAlias || matchUrl || matchTag;
+            }
+            return true;
+        });
+    }, [initialLinks, filter, searchQuery]);
 
     // Updated to accept the specific link object being copied
     const handleCopy = async (linkToCopy: Link) => {
@@ -42,126 +87,247 @@ export default function LinksTable({ initialLinks }: { initialLinks: Link[] }) {
         setIsDeleting(null);
     };
 
-    if (initialLinks.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl bg-white shadow-sm dark:bg-neutral-900/50">
-                <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-neutral-800/50 flex items-center justify-center mb-4">
-                    <ExternalLink className="h-6 w-6 text-slate-600 dark:text-slate-500" />
-                </div>
-                <p className="text-slate-500 dark:text-neutral-400 font-medium">No links created yet</p>
-                <p className="text-sm text-slate-600 mt-1">Use the form above to shorten your first URL.</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="border-b border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-400">
-                        <tr>
-                            <th className="px-6 py-4 font-medium">Alias & Details</th>
-                            <th className="px-6 py-4 font-medium">Destination</th>
-                            <th className="px-6 py-4 font-medium">Analytics</th>
-                            <th className="px-6 py-4 font-medium text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800/50">
-                        {initialLinks.map((link) => (
-                            <tr key={link.alias} className="group transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800/30">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-slate-900 dark:text-white">/{link.alias}</span>
-                                        {link.isProtected && (
-                                            <span title="Password Protected" className="flex items-center">
-                                                <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
-                                            </span>
-                                        )}
-                                        {link.maxClicks && link.totalClicks >= link.maxClicks && (
-                                            <span className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-500 uppercase tracking-wider">
-                                                Burned
-                                            </span>
-                                        )}
-                                    </div>
+        <div className="space-y-4">
+            {/* Filter Tabs and Search Bar */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                {/* Tabs */}
+                <div className="inline-flex rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900/60">
+                    <button
+                        type="button"
+                        onClick={() => setFilter("all")}
+                        className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                            filter === "all"
+                                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white"
+                                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                        }`}
+                    >
+                        <span>All Links</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                            filter === "all"
+                                ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-700 dark:text-white"
+                                : "bg-neutral-200/80 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}>
+                            {counts.all}
+                        </span>
+                    </button>
 
-                                    {/* Tag Pills */}
-                                    {link.tags && link.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-2">
-                                            {link.tags.map(tag => (
-                                                <span key={tag} className="rounded-md border border-slate-300/50 dark:border-neutral-700/50 bg-slate-100 dark:bg-neutral-800/50 px-2 py-0.5 text-[10px] text-slate-500 dark:text-neutral-400">
-                                                    #{tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
+                    <button
+                        type="button"
+                        onClick={() => setFilter("mine")}
+                        className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                            filter === "mine"
+                                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white"
+                                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                        }`}
+                    >
+                        <ShieldCheck className="h-3.5 w-3.5 text-purple-500" />
+                        <span>My Links</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                            filter === "mine"
+                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                                : "bg-neutral-200/80 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}>
+                            {counts.mine}
+                        </span>
+                    </button>
 
-                                    <div className="text-xs text-slate-600 dark:text-slate-500 mt-2">
-                                        {new Date(link.createdAt).toLocaleDateString()}
-                                        {link.maxClicks && ` • Limit: ${link.maxClicks} clicks`}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="max-w-[200px] md:max-w-[300px] truncate text-slate-700 dark:text-neutral-300">
-                                        {link.originalUrl}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800/50 px-3 py-1 w-fit border border-slate-300/50 dark:border-neutral-700/50">
-                                        <MousePointerClick className="h-3.5 w-3.5 text-blue-400" />
-                                        <span className="font-mono text-neutral-800 dark:text-neutral-200">{link.totalClicks}</span>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 transition-opacity group-hover:opacity-100">
-                                        <button
-                                            onClick={() => setEditingLink(link)}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
-                                            title="Edit Link"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            // Updated to pass the full link object
-                                            onClick={() => handleCopy(link)}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all"
-                                            title="Copy URL"
-                                        >
-                                            <Copy className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            // Updated QR code to use the correct domain dynamically
-                                            onClick={() => {
-                                                const d = link.domain || "go.mono.bro.bd";
-                                                const cleanD = d.replace(/^(https?:\/\/)/, "");
-                                                setActiveQR(`https://${cleanD}/${link.alias}`);
-                                            }}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
-                                            title="Generate QR Code"
-                                        >
-                                            <QrCode className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(link.alias)}
-                                            disabled={isDeleting === link.alias}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
-                                            title="Delete Link"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                    <button
+                        type="button"
+                        onClick={() => setFilter("public")}
+                        className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                            filter === "public"
+                                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white"
+                                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                        }`}
+                    >
+                        <Globe className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Public Links</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                            filter === "public"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                : "bg-neutral-200/80 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}>
+                            {counts.public}
+                        </span>
+                    </button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search alias or URL..."
+                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-1.5 pl-8 pr-8 text-xs outline-none transition-all focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {activeQR && (
-                <QRCodeModal url={activeQR} onClose={() => setActiveQR(null)} />
-            )}
+            {/* Table or Empty State */}
+            {initialLinks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl bg-white shadow-sm dark:bg-neutral-900/50">
+                    <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-neutral-800/50 flex items-center justify-center mb-4">
+                        <ExternalLink className="h-6 w-6 text-slate-600 dark:text-slate-500" />
+                    </div>
+                    <p className="text-slate-500 dark:text-neutral-400 font-medium">No links created yet</p>
+                    <p className="text-sm text-slate-600 mt-1">Use the form above to shorten your first URL.</p>
+                </div>
+            ) : filteredLinks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl bg-white shadow-sm dark:bg-neutral-900/50">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-neutral-800/50 flex items-center justify-center mb-3">
+                        <Search className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <p className="text-slate-700 dark:text-neutral-300 font-medium">No links match current filter</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        {filter === "public"
+                            ? "No public links have been generated yet."
+                            : filter === "mine"
+                            ? "No admin links match this criteria."
+                            : "Try clearing your search query."}
+                    </p>
+                </div>
+            ) : (
+                <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="border-b border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-400">
+                                <tr>
+                                    <th className="px-6 py-4 font-medium">Alias & Details</th>
+                                    <th className="px-6 py-4 font-medium">Type</th>
+                                    <th className="px-6 py-4 font-medium">Destination</th>
+                                    <th className="px-6 py-4 font-medium">Analytics</th>
+                                    <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-800/50">
+                                {filteredLinks.map((link) => {
+                                    const isPublicLink = link.isPublic === true || link.createdBy === "public";
+                                    return (
+                                        <tr key={link.alias} className="group transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800/30">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold text-slate-900 dark:text-white">/{link.alias}</span>
+                                                    {link.isProtected && (
+                                                        <span title="Password Protected" className="flex items-center">
+                                                            <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
+                                                        </span>
+                                                    )}
+                                                    {link.maxClicks && link.totalClicks >= link.maxClicks && (
+                                                        <span className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-500 uppercase tracking-wider">
+                                                            Burned
+                                                        </span>
+                                                    )}
+                                                </div>
 
-            {editingLink && (
-                <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} />
+                                                {/* Tag Pills */}
+                                                {link.tags && link.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-2">
+                                                        {link.tags.map((tag) => (
+                                                            <span key={tag} className="rounded-md border border-slate-300/50 dark:border-neutral-700/50 bg-slate-100 dark:bg-neutral-800/50 px-2 py-0.5 text-[10px] text-slate-500 dark:text-neutral-400">
+                                                                #{tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="text-xs text-slate-600 dark:text-slate-500 mt-2">
+                                                    {new Date(link.createdAt).toLocaleDateString()}
+                                                    {link.maxClicks && ` • Limit: ${link.maxClicks} clicks`}
+                                                </div>
+                                            </td>
+
+                                            {/* Creator Classifier Badge */}
+                                            <td className="px-6 py-4">
+                                                {isPublicLink ? (
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                                        <Globe className="h-3 w-3" />
+                                                        Public
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-600 dark:text-purple-400">
+                                                        <ShieldCheck className="h-3 w-3" />
+                                                        Admin
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                <div className="max-w-[200px] md:max-w-[300px] truncate text-slate-700 dark:text-neutral-300">
+                                                    {link.originalUrl}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800/50 px-3 py-1 w-fit border border-slate-300/50 dark:border-neutral-700/50">
+                                                    <MousePointerClick className="h-3.5 w-3.5 text-blue-400" />
+                                                    <span className="font-mono text-neutral-800 dark:text-neutral-200">{link.totalClicks}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <button
+                                                        onClick={() => setEditingLink(link)}
+                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
+                                                        title="Edit Link"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        // Updated to pass the full link object
+                                                        onClick={() => handleCopy(link)}
+                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all"
+                                                        title="Copy URL"
+                                                    >
+                                                        <Copy className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        // Updated QR code to use the correct domain dynamically
+                                                        onClick={() => {
+                                                            const d = link.domain || "go.mono.bro.bd";
+                                                            const cleanD = d.replace(/^(https?:\/\/)/, "");
+                                                            setActiveQR(`https://${cleanD}/${link.alias}`);
+                                                        }}
+                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
+                                                        title="Generate QR Code"
+                                                    >
+                                                        <QrCode className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(link.alias)}
+                                                        disabled={isDeleting === link.alias}
+                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                                                        title="Delete Link"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {activeQR && (
+                        <QRCodeModal url={activeQR} onClose={() => setActiveQR(null)} />
+                    )}
+
+                    {editingLink && (
+                        <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} />
+                    )}
+                </div>
             )}
         </div>
     );

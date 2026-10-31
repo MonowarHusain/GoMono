@@ -17,6 +17,11 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     const alias = resolvedParams.alias;
     const attemptedPassword = resolvedSearchParams.pwd;
 
+    // Ignore browser/crawler static asset probes
+    if (alias === "favicon.ico" || alias === "robots.txt" || alias === "sitemap.xml") {
+        notFound();
+    }
+
     // 2. Fetch the link document from Firestore
     const linkRef = adminDb.collection("links").doc(alias);
     const doc = await linkRef.get();

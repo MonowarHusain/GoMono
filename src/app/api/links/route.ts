@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getAuth } from "firebase-admin/auth";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import crypto from "crypto";
@@ -7,21 +7,41 @@ import crypto from "crypto";
 export async function POST(req: Request) {
     try {
         const authHeader = req.headers.get("Authorization");
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+        let decodedToken: DecodedIdToken | null = null;
+        let isDemoUser = false;
+        let isPublic = true;
+        let createdBy = "public";
+
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            const token = authHeader.split("Bearer ")[1]?.trim();
+            if (token) {
+                try {
+                    decodedToken = await getAuth().verifyIdToken(token);
+                    if (decodedToken && decodedToken.uid) {
+                        isPublic = false;
+                        createdBy = decodedToken.uid;
+                        isDemoUser = decodedToken.email === "demo01@go.mono.bro.bd";
+                    }
+                } catch (authErr) {
+                    // If token is invalid or expired, gracefully fallback to public creation
+                    console.warn("Auth token verification failed; falling back to public link creation:", authErr);
+                    isPublic = true;
+                    createdBy = "public";
+                    isDemoUser = false;
+                }
+            }
         }
-
-        const token = authHeader.split("Bearer ")[1];
-        const decodedToken = await getAuth().verifyIdToken(token);
-
-        // Fixed the email to match your actual demo user
-        const isDemoUser = decodedToken.email === "demo01@go.mono.bro.bd";
 
         const body = await req.json();
         const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password } = body;
 
-        if (!originalUrl) {
+        if (!originalUrl || typeof originalUrl !== "string" || !originalUrl.trim()) {
             return NextResponse.json({ error: "Original URL is required" }, { status: 400 });
+        }
+
+        let formattedUrl = originalUrl.trim();
+        if (!/^https?:\/\//i.test(formattedUrl)) {
+            formattedUrl = `https://${formattedUrl}`;
         }
 
         let finalExpiresAt = expiresAt ? new Date(expiresAt) : null;
@@ -34,8 +54,14 @@ export async function POST(req: Request) {
             finalMaxClicks = finalMaxClicks ? Math.min(finalMaxClicks, 50) : 50;
         }
 
-        let alias = customAlias?.trim();
-        if (!alias) {
+        let alias = customAlias?.trim().toLowerCase();
+        if (alias) {
+            // Sanitize custom alias: allow alphanumeric, hyphens, and underscores
+            alias = alias.replace(/[^a-z0-9-_]/g, "");
+            if (!alias) {
+                return NextResponse.json({ error: "Invalid custom alias provided" }, { status: 400 });
+            }
+        } else {
             alias = crypto.randomBytes(3).toString("hex");
         }
 
@@ -46,13 +72,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Alias already taken" }, { status: 409 });
         }
 
-        const tagsArray = tags
-            ? tags.split(",").map((t: string) => t.trim()).filter(Boolean)
-            : [];
+        let tagsArray: string[] = [];
+        if (Array.isArray(tags)) {
+            tagsArray = tags.map((t: unknown) => String(t).trim()).filter(Boolean);
+        } else if (typeof tags === "string") {
+            tagsArray = tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+        }
 
         await linkRef.set({
             alias,
-            originalUrl,
+            originalUrl: formattedUrl,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),
@@ -61,11 +90,12 @@ export async function POST(req: Request) {
             maxClicks: finalMaxClicks,
             expiresAt: finalExpiresAt,
             tags: tagsArray,
-            createdBy: decodedToken.uid,
+            createdBy,
+            isPublic,
             isDemo: isDemoUser
         });
 
-        return NextResponse.json({ success: true, alias }, { status: 201 });
+        return NextResponse.json({ success: true, alias, isPublic }, { status: 201 });
 
     } catch (error) {
         console.error("Error creating link:", error);
@@ -73,7 +103,7 @@ export async function POST(req: Request) {
     }
 }
 
-// NEW: Secure GET request to fetch isolated links
+// Secure GET request to fetch isolated links
 export async function GET(req: Request) {
     try {
         const authHeader = req.headers.get("Authorization");
@@ -93,6 +123,7 @@ export async function GET(req: Request) {
                 .where("createdBy", "==", decodedToken.uid)
                 .get();
         } else {
+            // Admin user sees ALL links (both admin-created and public-created)
             linksSnapshot = await adminDb
                 .collection("links")
                 .get();
@@ -122,6 +153,8 @@ export async function GET(req: Request) {
                 }
             }
 
+            const isPublicLink = data.isPublic === true || data.createdBy === "public";
+
             return {
                 alias: data.alias,
                 originalUrl: data.originalUrl,
@@ -132,7 +165,9 @@ export async function GET(req: Request) {
                 expiresAt: safeExpiresAt,
                 maxClicks: data.maxClicks || null,
                 tags: data.tags || [],
-                isDemo: data.isDemo || false
+                isDemo: data.isDemo || false,
+                isPublic: isPublicLink,
+                createdBy: data.createdBy || (isPublicLink ? "public" : "admin"),
             };
         });
 
@@ -140,7 +175,7 @@ export async function GET(req: Request) {
             links = links.filter(link => !link.isDemo);
         }
 
-        // Safe sorting
+        // Safe sorting by creation date descending
         links.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         return NextResponse.json({ links }, { status: 200 });

@@ -48,6 +48,8 @@ export async function createLink(formData: FormData) {
             maxClicks, // Saved to DB
             tags,      // Saved to DB
             totalClicks: 0,
+            createdBy: "admin",
+            isPublic: false,
         });
 
         revalidatePath("/dashboard");
@@ -93,7 +95,7 @@ export async function updateLink(oldAlias: string, formData: FormData) {
         newAlias = newAlias.toLowerCase().trim();
 
         // Build the update payload
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
             originalUrl,
             domain, // Ensure domain updates are captured
             expiresAt,

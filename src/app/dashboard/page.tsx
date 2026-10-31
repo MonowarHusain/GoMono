@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import CreateLinkForm from "@/components/dashboard/CreateLinkForm";
-import LinksTable from "@/components/dashboard/LinksTable";
+import LinksTable, { type Link } from "@/components/dashboard/LinksTable";
 import QuickActions from "@/components/dashboard/QuickActions";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import { Activity, Link2, Users } from "lucide-react";
@@ -10,7 +10,7 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function DashboardPage() {
-    const [links, setLinks] = useState<any[]>([]);
+    const [links, setLinks] = useState<Link[]>([]);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState("Monowar");
 
@@ -55,6 +55,26 @@ export default function DashboardPage() {
         return () => unsubscribe();
     }, []);
 
+    // Calculate Overview Metrics dynamically from the filtered links
+    const totalClicks = links.reduce((acc, curr) => acc + (curr.totalClicks || 0), 0);
+    const activeLinks = links.length;
+    const publicLinks = links.filter((l) => l.isPublic || l.createdBy === "public").length;
+    const adminLinks = activeLinks - publicLinks;
+    const uniqueVisitors = 0;
+
+    // Generate the last 7 days of trailing data deterministically
+    const chartData = useMemo(() => {
+        const ratios = [0.08, 0.12, 0.15, 0.10, 0.18, 0.12, 0.25];
+        return Array.from({ length: 7 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return {
+                date: d.toLocaleDateString("en-US", { weekday: "short" }),
+                clicks: Math.round(totalClicks * (ratios[i] ?? 0.14)),
+            };
+        });
+    }, [totalClicks]);
+
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center text-neutral-500 dark:text-neutral-400">
@@ -62,21 +82,6 @@ export default function DashboardPage() {
             </div>
         );
     }
-
-    // Calculate Overview Metrics dynamically from the filtered links
-    const totalClicks = links.reduce((acc, curr) => acc + curr.totalClicks, 0);
-    const activeLinks = links.length;
-    const uniqueVisitors = 0;
-
-    // Generate the last 7 days of trailing data
-    const chartData = Array.from({ length: 7 }).map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return {
-            date: d.toLocaleDateString("en-US", { weekday: "short" }),
-            clicks: i === 6 ? Math.floor(totalClicks * 0.4) : Math.floor(Math.random() * (totalClicks * 0.2)),
-        };
-    });
 
     return (
         <div className="space-y-10 pb-12">
@@ -113,9 +118,14 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Active Links</p>
                     <div className="mt-1 flex items-end justify-between">
-                        <p className="font-mono text-4xl font-semibold tracking-tight text-neutral-900 dark:text-white">
-                            {activeLinks.toLocaleString()}
-                        </p>
+                        <div>
+                            <p className="font-mono text-4xl font-semibold tracking-tight text-neutral-900 dark:text-white">
+                                {activeLinks.toLocaleString()}
+                            </p>
+                            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                {adminLinks} Admin • {publicLinks} Public
+                            </p>
+                        </div>
                         <a href="#links-table" className="text-sm text-purple-600 transition-colors hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 mb-1">
                             Manage links →
                         </a>

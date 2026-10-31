@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for auth & role verification
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the link being created meets the strict criteria for a public link
+    function isValidPublicLinkCreate() {
+      let data = request.resource.data;
+      return data.isPublic == true
+        && data.createdBy == "public"
+        && data.isDemo == false
+        && data.totalClicks == 0
+        && data.alias is string
+        && data.alias.size() > 0
+        && data.alias.size() <= 64
+        && data.originalUrl is string
+        && data.originalUrl.size() > 0
+        && data.originalUrl.size() <= 2048;
+    }
+
+    match /links/{alias} {
+      // 1. Reading: Individual short link resolution is public, but bulk listing is restricted to authenticated admins
+      allow get: if true;
+      allow list: if isAuthenticated();
+
+      // 2. Creation: Allowed for authenticated admins OR strictly validated public visitors
+      allow create: if isAuthenticated() || isValidPublicLinkCreate();
+
+      // 3. Modification and Deletion: Strictly protected for authenticated admins only
+      // Public visitors can never edit or delete any link
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

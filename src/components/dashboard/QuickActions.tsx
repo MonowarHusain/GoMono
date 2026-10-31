@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
     PlusCircle, BarChart3, Settings, QrCode, X, Download, Link2,
-    Wifi, MapPin, Mail, Type, Palette, LayoutTemplate, Layers
+    Wifi, MapPin, Mail, Type, Palette, LayoutTemplate, Layers, Table
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -210,11 +210,11 @@ export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => 
     return (
         <>
             {/* Quick Actions Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 {/* 1. Create Link */}
                 <button
                     onClick={handleScrollToCreate}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-blue-500/50 hover:bg-blue-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-blue-500/50 dark:hover:bg-blue-900/10"
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-blue-500/50 hover:bg-blue-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-blue-500/50 dark:hover:bg-blue-900/10"
                 >
                     <div className="rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
                         <PlusCircle className="h-5 w-5" />
@@ -228,7 +228,7 @@ export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => 
                 {/* 2. Bulk Shortener */}
                 <button
                     onClick={() => setIsBulkModalOpen(true)}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-indigo-500/50 hover:bg-indigo-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-900/10"
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-indigo-500/50 hover:bg-indigo-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-900/10"
                 >
                     <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         <Layers className="h-5 w-5" />
@@ -239,10 +239,24 @@ export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => 
                     </div>
                 </button>
 
-                {/* 3. QR Code Generator */}
+                {/* 3. CSV Studio */}
+                <button
+                    onClick={() => router.push("/dashboard/csv-studio")}
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-indigo-500/50 hover:bg-indigo-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-900/10"
+                >
+                    <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        <Table className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">CSV Studio</span>
+                        <span className="text-[10px] text-neutral-400">Data Grid & Tools</span>
+                    </div>
+                </button>
+
+                {/* 4. QR Code Generator */}
                 <button
                     onClick={() => setIsQrModalOpen(true)}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-purple-500/50 hover:bg-purple-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-purple-500/50 dark:hover:bg-purple-900/10"
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-purple-500/50 hover:bg-purple-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-purple-500/50 dark:hover:bg-purple-900/10"
                 >
                     <div className="rounded-lg bg-purple-100 p-2 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">
                         <QrCode className="h-5 w-5" />
@@ -253,10 +267,10 @@ export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => 
                     </div>
                 </button>
 
-                {/* 4. Export Stats */}
+                {/* 5. Export Stats */}
                 <button
                     onClick={handleExport}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-500/50 hover:bg-emerald-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-900/10"
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-emerald-500/50 hover:bg-emerald-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-900/10"
                 >
                     <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
                         <BarChart3 className="h-5 w-5" />
@@ -267,10 +281,10 @@ export default function QuickActions({ onLinkCreated }: { onLinkCreated?: () => 
                     </div>
                 </button>
 
-                {/* 5. Settings */}
+                {/* 6. Settings */}
                 <button
                     onClick={handleSettings}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-sm transition-all hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-neutral-500/50 dark:hover:bg-neutral-800"
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:border-neutral-500/50 dark:hover:bg-neutral-800"
                 >
                     <div className="rounded-lg bg-neutral-100 p-2 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                         <Settings className="h-5 w-5" />

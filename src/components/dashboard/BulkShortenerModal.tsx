@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useId } from "react";
+import Link from "next/link";
 import {
     X,
     Layers,
@@ -20,6 +21,7 @@ import {
     Globe,
     Tag,
     Trash2,
+    Table,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
@@ -483,13 +485,25 @@ export default function BulkShortenerModal({
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-white"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href="/dashboard/csv-studio"
+                                onClick={onClose}
+                                className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20 transition shadow-xs"
+                                title="Open CSV Studio for multi-column editing, deduplication, and batch QR generation"
+                            >
+                                <Table className="h-3.5 w-3.5 text-indigo-500" />
+                                <span>CSV Studio</span>
+                            </Link>
+
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-white"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Body */}

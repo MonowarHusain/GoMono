@@ -36,7 +36,7 @@ export default function RootLayout({
     // suppressHydrationWarning is strictly required for next-themes to work without React errors
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased bg-slate-50 text-slate-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors duration-300`}
+        className={`${inter.className} antialiased bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 transition-colors duration-200`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}

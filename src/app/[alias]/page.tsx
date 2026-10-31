@@ -2,9 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { headers, cookies } from "next/headers";
 import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
-import { AlertCircle } from "lucide-react";
 import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 import PasswordGate from "@/components/public/PasswordGate";
+import LinkExpiredView from "@/components/public/LinkExpiredView";
 
 interface PageProps {
     // Next.js 15 requires dynamic route parameters to be Promises
@@ -37,9 +37,11 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     const data = doc.data();
     if (!data) notFound();
 
-    // 4. Security Check: Expiration Date
+    // 4. Automated Link Expiration & Click Limit Checks
+    let isExpired = false;
+    let expirationDate: Date | null = null;
+
     if (data.expiresAt) {
-        let expirationDate: Date | null = null;
         if (typeof data.expiresAt.toDate === "function") {
             expirationDate = data.expiresAt.toDate();
         } else if (data.expiresAt instanceof Date) {
@@ -51,25 +53,28 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
             }
         }
 
-        if (expirationDate && expirationDate < new Date()) {
-            return (
-                <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-neutral-950">
-                    <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-50/50 p-8 text-center dark:bg-red-500/10">
-                        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-                        <h1 className="text-xl font-bold text-red-700 dark:text-red-400">Link Expired</h1>
-                        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                            This link has passed its expiration date and is no longer active.
-                        </p>
-                    </div>
-                </div>
-            );
+        if (expirationDate && !isNaN(expirationDate.getTime()) && expirationDate < new Date()) {
+            isExpired = true;
         }
     }
 
-    // 5. Security Check: Burn Limit (Max Clicks)
-    if (typeof data.maxClicks === "number" && data.maxClicks > 0 && (data.totalClicks || 0) >= data.maxClicks) {
-        // Redirect them immediately to the burned page
-        redirect("/burned");
+    const totalClicks = typeof data.totalClicks === "number" ? data.totalClicks : 0;
+    const maxClicks = typeof data.maxClicks === "number" ? data.maxClicks : (data.maxClicks ? parseInt(String(data.maxClicks), 10) : null);
+    const isLimitReached = Boolean(maxClicks && maxClicks > 0 && totalClicks >= maxClicks);
+
+    // If expired or limit is reached, render clean, professional error view
+    if (isExpired || isLimitReached) {
+        return (
+            <LinkExpiredView
+                alias={alias}
+                domain={data.domain || "to.mono.bro.bd"}
+                isExpired={isExpired}
+                isLimitReached={isLimitReached}
+                expirationDate={expirationDate}
+                maxClicks={maxClicks}
+                totalClicks={totalClicks}
+            />
+        );
     }
 
     // 6. Security Check: Password Protection Interception

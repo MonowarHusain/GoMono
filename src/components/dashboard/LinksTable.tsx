@@ -4,10 +4,11 @@ import { deleteLink } from "@/app/dashboard/actions";
 import { useState, useMemo } from "react";
 import QRCodeModal from "./QRCodeModal";
 import EditLinkModal from "./EditLinkModal";
+import LinkAnalyticsModal from "./LinkAnalyticsModal";
 import { toast } from "sonner";
 import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
-    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone
+    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone, BarChart2
 } from "lucide-react";
 import { notifyLinkDeleted } from "@/lib/events";
 import type { Link } from "@/types/link";
@@ -32,6 +33,7 @@ export default function LinksTable({
     const [activeQR, setActiveQR] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingLink, setEditingLink] = useState<Link | null>(null);
+    const [analyticsLink, setAnalyticsLink] = useState<Link | null>(null);
     const [filter, setFilter] = useState<FilterType>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -332,13 +334,28 @@ export default function LinksTable({
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800/50 px-3 py-1 w-fit border border-slate-300/50 dark:border-neutral-700/50">
-                                                    <MousePointerClick className="h-3.5 w-3.5 text-blue-400" />
-                                                    <span className="font-mono text-neutral-800 dark:text-neutral-200">{link.totalClicks}</span>
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAnalyticsLink(link)}
+                                                    className="flex items-center gap-2 rounded-full bg-slate-100 hover:bg-blue-500/10 hover:border-blue-500/40 dark:bg-neutral-800/50 dark:hover:bg-blue-500/15 dark:hover:border-blue-500/40 px-3 py-1 w-fit border border-slate-300/50 dark:border-neutral-700/50 transition-all cursor-pointer group/analytics"
+                                                    title="View detailed link intelligence & traffic logs"
+                                                >
+                                                    <MousePointerClick className="h-3.5 w-3.5 text-blue-500 group-hover/analytics:scale-110 transition-transform" />
+                                                    <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium">{link.totalClicks}</span>
+                                                    <span className="text-[10px] text-blue-500 font-medium opacity-0 group-hover/analytics:opacity-100 transition-opacity hidden sm:inline">
+                                                        Insights
+                                                    </span>
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <button
+                                                        onClick={() => setAnalyticsLink(link)}
+                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                                                        title="View Analytics & Telemetry"
+                                                    >
+                                                        <BarChart2 className="h-4 w-4" />
+                                                    </button>
                                                     <button
                                                         onClick={() => setEditingLink(link)}
                                                         className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
@@ -357,41 +374,50 @@ export default function LinksTable({
                                                     <button
                                                         // Updated QR code to use the correct domain dynamically
                                                         onClick={() => {
-                                                            const d = link.domain || "go.mono.bro.bd";
-                                                            const cleanD = d.replace(/^(https?:\/\/)/, "");
-                                                            setActiveQR(`https://${cleanD}/${link.alias}`);
-                                                        }}
-                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
-                                                        title="Generate QR Code"
-                                                    >
-                                                        <QrCode className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(link.alias)}
-                                                        disabled={isDeleting === link.alias}
-                                                        className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
-                                                        title="Delete Link"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                             const d = link.domain || "go.mono.bro.bd";
+                                                             const cleanD = d.replace(/^(https?:\/\/)/, "");
+                                                             setActiveQR(`https://${cleanD}/${link.alias}`);
+                                                         }}
+                                                         className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
+                                                         title="Generate QR Code"
+                                                     >
+                                                         <QrCode className="h-4 w-4" />
+                                                     </button>
+                                                     <button
+                                                         onClick={() => handleDelete(link.alias)}
+                                                         disabled={isDeleting === link.alias}
+                                                         className="p-2 rounded-lg text-slate-500 dark:text-neutral-400 hover:text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                                                         title="Delete Link"
+                                                     >
+                                                         <Trash2 className="h-4 w-4" />
+                                                     </button>
+                                                 </div>
+                                             </td>
+                                         </tr>
+                                     );
+                                 })}
+                             </tbody>
+                         </table>
+                     </div>
 
-                    {activeQR && (
-                        <QRCodeModal url={activeQR} onClose={() => setActiveQR(null)} />
-                    )}
+                     {activeQR && (
+                         <QRCodeModal url={activeQR} onClose={() => setActiveQR(null)} />
+                     )}
 
-                    {editingLink && (
-                        <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} />
-                    )}
-                </div>
-            )}
-        </div>
-    );
+                     {editingLink && (
+                         <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} />
+                     )}
+
+                     {analyticsLink && (
+                         <LinkAnalyticsModal
+                             key={analyticsLink.alias}
+                             isOpen={!!analyticsLink}
+                             onClose={() => setAnalyticsLink(null)}
+                             link={analyticsLink}
+                         />
+                     )}
+                 </div>
+             )}
+         </div>
+     );
 }

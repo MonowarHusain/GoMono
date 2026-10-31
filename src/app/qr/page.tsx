@@ -4,8 +4,8 @@ import { ThemeToggle } from "@/components/ui/ThemeProvider";
 import { QrStudioView } from "@/components/qr/QrStudio";
 
 export const metadata = {
-    title: "Custom QR Code Studio • GoMono",
-    description: "Design high-resolution vector QR codes with custom dot styles, palettes, and brand presets. Zero-storage vector downloads in SVG and ultra-HD PNG.",
+    title: "Enterprise QR Studio • GoMono",
+    description: "Generate custom vector QR codes for URLs, Wi-Fi networks, vCard business cards, and smart app redirects with zero-storage brand logos and up to 4K resolution exports.",
 };
 
 export default function QrStudioPage() {
@@ -61,16 +61,18 @@ export default function QrStudioPage() {
                 <div className="mb-10 text-center flex flex-col items-center">
                     <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50/70 px-3.5 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300 shadow-xs">
                         <QrCode className="h-3.5 w-3.5" />
-                        <span>Public Vector Studio</span>
+                        <span>Enterprise Studio</span>
                         <span>•</span>
-                        <span>Zero Storage Required</span>
+                        <span>Wi-Fi, vCard & Smart Links</span>
+                        <span>•</span>
+                        <span>Zero Storage</span>
                     </div>
 
                     <h1 className="mb-3 font-extrabold tracking-tight text-3xl sm:text-5xl text-zinc-950 dark:text-white">
-                        Custom QR Code Studio
+                        Enterprise QR Code Studio
                     </h1>
-                    <p className="max-w-xl text-sm text-zinc-600 dark:text-zinc-400 sm:text-base leading-relaxed">
-                        Customize dot styles, palettes, and embed built-in vector icons. Export pixel-perfect SVG and ultra-HD PNGs instantly without registration.
+                    <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400 sm:text-base leading-relaxed">
+                        Design pixel-perfect QR codes for Websites, Wi-Fi networks, Digital Business Cards, and Smart App Redirects. Customize patterns, palettes, frames, and zero-storage brand icons with vector SVG and up to 4K PNG exports.
                     </p>
                 </div>
 

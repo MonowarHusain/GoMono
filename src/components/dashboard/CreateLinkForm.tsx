@@ -4,12 +4,13 @@ import { useState } from "react";
 import {
     Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
-    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone
+    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import { type Link } from "@/components/dashboard/LinksTable";
 import { notifyLinkCreated } from "@/lib/events";
+import QrStudioModal from "@/components/qr/QrStudio";
 
 // Accept onLinkCreated with optional newly created Link item
 export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (newLink?: Link) => void }) {
@@ -22,6 +23,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
     // Success State
     const [createdData, setCreatedData] = useState<{ shortUrl: string; originalUrl: string; alias: string } | null>(null);
     const [copied, setCopied] = useState(false);
+    const [showStudio, setShowStudio] = useState(false);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -448,16 +450,34 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                     className="h-20 w-20"
                                 />
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleDownloadQR}
-                                className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
-                            >
-                                <Download className="h-3.5 w-3.5" />
-                                Download QR
-                            </button>
+                            <div className="flex flex-col gap-1.5 items-center">
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadQR}
+                                    className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                >
+                                    <Download className="h-3.5 w-3.5" />
+                                    Download QR
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowStudio(true)}
+                                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                >
+                                    <QrCode className="h-3.5 w-3.5" />
+                                    Open Studio
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    {showStudio && (
+                        <QrStudioModal
+                            isOpen={showStudio}
+                            onClose={() => setShowStudio(false)}
+                            url={createdData.shortUrl}
+                        />
+                    )}
                 </div>
             )}
         </div>

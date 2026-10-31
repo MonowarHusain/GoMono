@@ -1,12 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import {
-    Link2, Sparkles, Globe, ChevronDown, ChevronUp,
-    Flame, Clock, Lock, Copy, Check, Download, ExternalLink,
-    ArrowRight, Loader2, RefreshCw, Layers
+    Link2,
+    Sparkles,
+    ChevronDown,
+    Flame,
+    Clock,
+    Lock,
+    Copy,
+    Check,
+    Download,
+    ExternalLink,
+    ArrowRight,
+    Loader2,
+    RefreshCw,
+    Layers,
+    QrCode,
+    SlidersHorizontal,
+    CornerDownLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeCanvas } from "qrcode.react";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 
 interface ShortenResult {
@@ -15,33 +30,87 @@ interface ShortenResult {
     alias: string;
 }
 
+const DOMAIN_OPTIONS = [
+    { value: "to.mono.bro.bd", label: "to.mono.bro.bd", badge: "Personal" },
+    { value: "go.mono.bro.bd", label: "go.mono.bro.bd", badge: "Tech" },
+];
+
 export default function PublicShortener() {
+    const qrCanvasId = useId();
     const [loading, setLoading] = useState(false);
     const [isBulkOpen, setIsBulkOpen] = useState(false);
+    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+    const [isDomainOpen, setIsDomainOpen] = useState(false);
+    const [showQrDrawer, setShowQrDrawer] = useState(false);
+
+    // Form inputs
     const [originalUrl, setOriginalUrl] = useState("");
     const [customAlias, setCustomAlias] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("to.mono.bro.bd");
-    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-
-    // Advanced options
     const [maxClicks, setMaxClicks] = useState("");
     const [expiresAt, setExpiresAt] = useState("");
     const [password, setPassword] = useState("");
 
-    // Success State
+    // Result & feedback state
     const [result, setResult] = useState<ShortenResult | null>(null);
     const [copied, setCopied] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const inputRef = useRef<HTMLInputElement>(null);
+    const domainDropdownRef = useRef<HTMLDivElement>(null);
+
+    const resetForm = () => {
+        setResult(null);
+        setOriginalUrl("");
+        setCustomAlias("");
+        setMaxClicks("");
+        setExpiresAt("");
+        setPassword("");
+        setIsAdvancedOpen(false);
+        setShowQrDrawer(false);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    // Global keyboard shortcut: Press '/' to focus input, 'Esc' to reset on result view
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                inputRef.current?.focus();
+            } else if (e.key === "Escape") {
+                if (isDomainOpen) setIsDomainOpen(false);
+                if (result) resetForm();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDomainOpen, result]);
+
+    // Close domain dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (domainDropdownRef.current && !domainDropdownRef.current.contains(e.target as Node)) {
+                setIsDomainOpen(false);
+            }
+        };
+
+        if (isDomainOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isDomainOpen]);
+
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
 
         if (!originalUrl.trim()) {
-            toast.error("Please enter a valid destination URL");
+            toast.error("Please enter a destination URL");
+            inputRef.current?.focus();
             return;
         }
 
         setLoading(true);
-        const toastId = toast.loading("Shortening your link...");
+        const toastId = toast.loading("Generating your short link...");
 
         try {
             const payload = {
@@ -65,7 +134,7 @@ export default function PublicShortener() {
 
             if (!res.ok) {
                 if (res.status === 409 || data.error?.includes("already taken")) {
-                    throw new Error("That custom alias is already in use. Please choose another.");
+                    throw new Error("That custom alias is already taken. Please choose another.");
                 }
                 throw new Error(data.error || "Failed to shorten link");
             }
@@ -79,7 +148,7 @@ export default function PublicShortener() {
                 alias: data.alias,
             });
 
-            toast.success("Short link ready!", { id: toastId });
+            toast.success("Short link created successfully!", { id: toastId });
         } catch (err: unknown) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : "Something went wrong while shortening the link.";
@@ -94,297 +163,393 @@ export default function PublicShortener() {
         try {
             await navigator.clipboard.writeText(result.shortUrl);
             setCopied(true);
-            toast.success("Short URL copied to clipboard!");
-            setTimeout(() => setCopied(false), 2000);
+            toast.success("Copied to clipboard!");
+            setTimeout(() => setCopied(false), 2200);
         } catch {
-            toast.error("Failed to copy to clipboard");
+            toast.error("Failed to copy link");
         }
     };
 
-    const handleDownloadQR = async () => {
+    const handleDownloadQR = () => {
         if (!result) return;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(result.shortUrl)}`;
+        const canvas = document.getElementById(qrCanvasId) as HTMLCanvasElement;
+        if (!canvas) return;
 
-        try {
-            const response = await fetch(qrUrl);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
+        // Create high-res framed PNG canvas
+        const masterCanvas = document.createElement("canvas");
+        const ctx = masterCanvas.getContext("2d");
+        if (!ctx) return;
 
-            const link = document.createElement("a");
-            link.href = blobUrl;
-            link.download = `GoMono-${result.alias}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(blobUrl);
-            toast.success("QR code downloaded!");
-        } catch {
-            window.open(qrUrl, "_blank");
-        }
+        const qrSize = 512;
+        const padding = 48;
+        const textHeight = 72;
+
+        masterCanvas.width = qrSize + padding * 2;
+        masterCanvas.height = qrSize + padding * 2 + textHeight;
+
+        // Background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
+
+        // Draw QR
+        ctx.drawImage(canvas, padding, padding, qrSize, qrSize);
+
+        // Draw Domain text at bottom
+        ctx.fillStyle = "#09090b";
+        ctx.font = "bold 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(result.shortUrl.replace(/^https?:\/\//, ""), masterCanvas.width / 2, masterCanvas.height - 30);
+
+        const link = document.createElement("a");
+        link.href = masterCanvas.toDataURL("image/png");
+        link.download = `GoMono-${result.alias}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("High-res QR code downloaded!");
     };
 
-    const resetForm = () => {
-        setResult(null);
-        setOriginalUrl("");
-        setCustomAlias("");
-        setMaxClicks("");
-        setExpiresAt("");
-        setPassword("");
-        setIsAdvancedOpen(false);
-    };
+    const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
+    const hasAdvancedFilters = !!(customAlias || maxClicks || expiresAt || password);
 
     return (
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-2xl px-2 sm:px-0">
             {!result ? (
-                <div className="relative rounded-3xl border border-neutral-800 bg-neutral-900/70 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-                    {/* Glowing highlight */}
-                    <div className="pointer-events-none absolute -top-px left-1/2 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+                <div className="relative">
+                    {/* Ambient Glow behind the Command Bar */}
+                    <div className="pointer-events-none absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20 opacity-60 blur-2xl transition-all duration-500 group-hover:opacity-100" />
 
-                    {/* Mode Switcher Banner */}
-                    <div className="mb-5 flex items-center justify-between border-b border-neutral-800 pb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="flex h-2 w-2 rounded-full bg-blue-500" />
-                            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-300">
-                                Single Link Mode
-                            </span>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsBulkOpen(true)}
-                            className="group inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300 transition-all hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-white"
+                    <div className="relative rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-2 sm:p-3 shadow-2xl backdrop-blur-2xl transition-all">
+                        {/* THE COMMAND BAR: Unified Single-Line Pill */}
+                        <form
+                            onSubmit={handleSubmit}
+                            className="relative flex flex-col gap-2 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 p-1.5 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/90 focus-within:ring-2 focus-within:ring-indigo-500/20 sm:flex-row sm:items-center sm:gap-2 sm:p-2"
                         >
-                            <Layers className="h-3.5 w-3.5 text-blue-400 transition-transform group-hover:scale-110" />
-                            <span>Bulk Shortener</span>
-                            <span className="rounded bg-blue-500/20 px-1 py-0.5 text-[10px] font-bold text-blue-300">
-                                Up to 50
-                            </span>
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* URL Input Box */}
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-400">
-                                <Link2 className="h-5 w-5" />
-                            </div>
-                            <input
-                                id="publicOriginalUrl"
-                                type="url"
-                                required
-                                value={originalUrl}
-                                onChange={(e) => setOriginalUrl(e.target.value)}
-                                placeholder="Paste long destination URL (e.g., https://example.com/docs/...)"
-                                className="w-full rounded-2xl border border-neutral-700/80 bg-neutral-950/80 py-4 pl-12 pr-4 text-sm text-white placeholder-neutral-500 outline-none transition-all focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/10 sm:text-base"
-                            />
-                        </div>
-
-                        {/* Domain & Custom Alias Options */}
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            {/* Domain Selector */}
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-neutral-400">
-                                    <Globe className="h-4 w-4" />
+                            {/* Input Field with Leading Icon */}
+                            <div className="relative flex flex-1 items-center">
+                                <div className="pointer-events-none absolute left-3.5 flex items-center text-zinc-500 transition-colors group-focus-within:text-indigo-400">
+                                    <Link2 className="h-4 w-4 sm:h-5 sm:w-5" />
                                 </div>
-                                <select
-                                    value={selectedDomain}
-                                    onChange={(e) => setSelectedDomain(e.target.value)}
-                                    className="w-full appearance-none rounded-xl border border-neutral-800 bg-neutral-950/60 py-3 pl-10 pr-8 text-xs font-medium text-neutral-300 outline-none transition-all focus:border-blue-500/60 sm:text-sm"
-                                >
-                                    <option value="to.mono.bro.bd">to.mono.bro.bd</option>
-                                    <option value="go.mono.bro.bd">go.mono.bro.bd</option>
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500">
-                                    <ChevronDown className="h-4 w-4" />
-                                </div>
-                            </div>
 
-                            {/* Custom Alias */}
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-neutral-400">
-                                    <Sparkles className="h-4 w-4" />
-                                </div>
                                 <input
-                                    type="text"
-                                    value={customAlias}
-                                    onChange={(e) => setCustomAlias(e.target.value)}
-                                    placeholder="Custom alias (optional)"
-                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950/60 py-3 pl-10 pr-4 text-xs text-neutral-200 placeholder-neutral-500 outline-none transition-all focus:border-purple-500/60 sm:text-sm"
+                                    ref={inputRef}
+                                    type="url"
+                                    required
+                                    value={originalUrl}
+                                    onChange={(e) => setOriginalUrl(e.target.value)}
+                                    placeholder="Paste long link to shorten..."
+                                    className="w-full bg-transparent py-3 pl-10 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none sm:py-2.5 sm:text-base font-normal tracking-normal"
                                 />
                             </div>
-                        </div>
 
-                        {/* Optional Advanced Settings Toggle */}
-                        <div className="rounded-xl border border-neutral-800/80 bg-neutral-950/40">
+                            {/* Actions Group (Domain Pill + CTA Button) */}
+                            <div className="flex items-center justify-between gap-1.5 border-t border-zinc-800/60 pt-2 sm:border-t-0 sm:pt-0">
+                                {/* Sleek Custom Domain Pill Dropdown */}
+                                <div ref={domainDropdownRef} className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDomainOpen(!isDomainOpen)}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/60 bg-zinc-800/70 px-3 py-1.5 text-xs font-mono font-medium text-zinc-300 transition-all hover:border-zinc-600 hover:bg-zinc-800 hover:text-white"
+                                        title="Select short link domain"
+                                    >
+                                        <span>{activeDomainObj.label.split(".")[0]}</span>
+                                        <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isDomainOpen ? "rotate-180" : ""}`} />
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {isDomainOpen && (
+                                        <div className="absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/95 p-1.5 shadow-xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                                                Select Domain
+                                            </div>
+                                            {DOMAIN_OPTIONS.map((opt) => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedDomain(opt.value);
+                                                        setIsDomainOpen(false);
+                                                    }}
+                                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-mono transition-colors ${
+                                                        selectedDomain === opt.value
+                                                            ? "bg-indigo-600/20 text-indigo-300 font-semibold"
+                                                            : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                                                    }`}
+                                                >
+                                                    <span>{opt.label}</span>
+                                                    <span className="text-[10px] font-sans text-zinc-500">{opt.badge}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Primary CTA Button */}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="group relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-full bg-white px-5 py-2 text-xs font-semibold text-zinc-950 shadow-sm transition-all hover:bg-zinc-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 sm:text-sm"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin text-zinc-950" />
+                                            <span>Shortening...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Shorten</span>
+                                            <CornerDownLeft className="h-3 w-3 text-zinc-400 opacity-60 transition-opacity group-hover:opacity-100 hidden sm:inline" />
+                                            <ArrowRight className="h-3.5 w-3.5 sm:hidden" />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+
+                        {/* SUBTLE UTILITY BAR BELOW THE COMMAND PILL */}
+                        <div className="mt-2.5 flex items-center justify-between px-2 text-xs">
+                            {/* Advanced Options Accordion Trigger */}
                             <button
                                 type="button"
                                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-                                className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium text-neutral-400 transition-colors hover:text-neutral-200"
+                                className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-colors ${
+                                    isAdvancedOpen || hasAdvancedFilters
+                                        ? "text-indigo-400 bg-indigo-500/10"
+                                        : "text-zinc-400 hover:text-zinc-200"
+                                }`}
                             >
-                                <span>Optional link security & expiration</span>
-                                {isAdvancedOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                <SlidersHorizontal className="h-3 w-3" />
+                                <span>{isAdvancedOpen ? "Hide Options" : "Advanced Options"}</span>
+                                {hasAdvancedFilters && (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                                )}
                             </button>
 
-                            {isAdvancedOpen && (
-                                <div className="grid grid-cols-1 gap-3 border-t border-neutral-800/80 p-4 sm:grid-cols-3">
+                            {/* Bulk Shortener Trigger */}
+                            <button
+                                type="button"
+                                onClick={() => setIsBulkOpen(true)}
+                                className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-zinc-400 transition-colors hover:text-zinc-200"
+                            >
+                                <Layers className="h-3 w-3 text-zinc-500 transition-transform group-hover:scale-110 group-hover:text-indigo-400" />
+                                <span>Bulk Mode</span>
+                                <span className="rounded bg-zinc-800 px-1 py-0.2 text-[10px] font-mono text-zinc-400">
+                                    50 max
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* REFINED ADVANCED DRAWER (Completely hidden until toggled) */}
+                        {isAdvancedOpen && (
+                            <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="mb-2.5 flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                                        Optional Link Customization & Expiry
+                                    </span>
+                                    {hasAdvancedFilters && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCustomAlias("");
+                                                setMaxClicks("");
+                                                setExpiresAt("");
+                                                setPassword("");
+                                            }}
+                                            className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                    {/* Custom Alias */}
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                                            <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={customAlias}
+                                            onChange={(e) => setCustomAlias(e.target.value)}
+                                            placeholder="Custom alias (e.g. launch)"
+                                            className="w-full rounded-xl border border-zinc-800/90 bg-zinc-950/70 py-2 pl-9 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors focus:border-purple-500/50"
+                                        />
+                                    </div>
+
                                     {/* Burn limit */}
                                     <div className="relative">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-red-400">
-                                            <Flame className="h-3.5 w-3.5" />
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                                            <Flame className="h-3.5 w-3.5 text-orange-400" />
                                         </div>
                                         <input
                                             type="number"
                                             min="1"
                                             value={maxClicks}
                                             onChange={(e) => setMaxClicks(e.target.value)}
-                                            placeholder="Max clicks (burn)"
-                                            className="w-full rounded-lg border border-neutral-800 bg-neutral-950 py-2 pl-9 pr-3 text-xs text-neutral-200 placeholder-neutral-500 outline-none focus:border-red-500/50"
+                                            placeholder="Burn limit (max visits)"
+                                            className="w-full rounded-xl border border-zinc-800/90 bg-zinc-950/70 py-2 pl-9 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors focus:border-orange-500/50"
                                         />
                                     </div>
 
                                     {/* Expiration date */}
                                     <div className="relative">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-amber-400">
-                                            <Clock className="h-3.5 w-3.5" />
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                                            <Clock className="h-3.5 w-3.5 text-amber-400" />
                                         </div>
                                         <input
                                             type="datetime-local"
                                             value={expiresAt}
                                             onChange={(e) => setExpiresAt(e.target.value)}
-                                            className="w-full rounded-lg border border-neutral-800 bg-neutral-950 py-2 pl-9 pr-3 text-xs text-neutral-200 outline-none focus:border-amber-500/50"
+                                            className="w-full rounded-xl border border-zinc-800/90 bg-zinc-950/70 py-2 pl-9 pr-3 text-xs text-zinc-200 outline-none transition-colors focus:border-amber-500/50 [color-scheme:dark]"
                                         />
                                     </div>
 
                                     {/* Password protection */}
                                     <div className="relative">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-blue-400">
-                                            <Lock className="h-3.5 w-3.5" />
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                                            <Lock className="h-3.5 w-3.5 text-blue-400" />
                                         </div>
                                         <input
                                             type="password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Password protect"
-                                            className="w-full rounded-lg border border-neutral-800 bg-neutral-950 py-2 pl-9 pr-3 text-xs text-neutral-200 placeholder-neutral-500 outline-none focus:border-blue-500/50"
+                                            placeholder="Passcode protection"
+                                            className="w-full rounded-xl border border-zinc-800/90 bg-zinc-950/70 py-2 pl-9 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors focus:border-blue-500/50"
                                         />
                                     </div>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.01] hover:shadow-blue-500/30 active:scale-[0.99] disabled:opacity-50 sm:text-base"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    <span>Generating Link...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>Shorten Link Free</span>
-                                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                </>
-                            )}
-                        </button>
-                    </form>
-
-                    {/* Secondary bulk prompt */}
-                    <div className="mt-4 pt-3 border-t border-neutral-800 text-center">
-                        <button
-                            type="button"
-                            onClick={() => setIsBulkOpen(true)}
-                            className="inline-flex items-center gap-1.5 text-xs text-neutral-400 transition-colors hover:text-blue-400"
-                        >
-                            <Layers className="h-3.5 w-3.5 text-blue-400" />
-                            <span>Need to shorten up to 50 links at once? Try Bulk Shortener →</span>
-                        </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (
-                /* Success Card */
-                <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-neutral-900/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-                    {/* Glowing Accent */}
-                    <div className="pointer-events-none absolute -top-px left-1/2 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+                /* INSTANT RESULT CARD: Minimalist, High-Conversion */
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950/90 p-5 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300 sm:p-7">
+                    {/* Subtle Top Glow Accent */}
+                    <div className="pointer-events-none absolute -top-px left-1/2 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
 
-                    <div className="mb-6 flex items-center justify-between">
+                    {/* Status Header */}
+                    <div className="mb-5 flex items-center justify-between border-b border-zinc-800/60 pb-3.5">
                         <div className="flex items-center gap-2">
-                            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                                Public Link Created Successfully
+                                Short Link Ready
                             </span>
                         </div>
 
                         <button
                             type="button"
                             onClick={resetForm}
-                            className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-neutral-700 hover:text-white"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-1 text-xs text-zinc-300 transition-colors hover:border-zinc-700 hover:text-white"
                         >
                             <RefreshCw className="h-3 w-3" />
-                            <span>Shorten Another</span>
+                            <span>New Link</span>
+                            <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">(Esc)</span>
                         </button>
                     </div>
 
-                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        {/* URL Copy Box & Details */}
-                        <div className="flex-1 space-y-3">
+                    {/* Main Short Link Presentation */}
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <div className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70 p-3 sm:p-3.5">
+                                <span className="block font-mono text-base font-semibold tracking-tight text-white sm:text-lg select-all">
+                                    {result.shortUrl}
+                                </span>
+                            </div>
+
+                            {/* Action Buttons */}
                             <div className="flex items-center gap-2">
-                                <input
-                                    readOnly
-                                    value={result.shortUrl}
-                                    className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 font-mono text-sm font-semibold text-emerald-400 outline-none"
-                                />
                                 <button
                                     type="button"
                                     onClick={handleCopy}
-                                    title="Copy to clipboard"
-                                    className="flex shrink-0 items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-black font-semibold transition-all hover:bg-emerald-400 focus:ring-4 focus:ring-emerald-500/20"
+                                    className={`inline-flex items-center justify-center gap-1.5 rounded-2xl px-5 py-3 text-sm font-semibold transition-all active:scale-95 ${
+                                        copied
+                                            ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
+                                            : "bg-white text-zinc-950 hover:bg-zinc-200"
+                                    }`}
                                 >
-                                    {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                                    {copied ? (
+                                        <>
+                                            <Check className="h-4 w-4" />
+                                            <span>Copied!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="h-4 w-4" />
+                                            <span>Copy Link</span>
+                                        </>
+                                    )}
                                 </button>
+
                                 <a
                                     href={result.shortUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="Open link"
-                                    className="flex shrink-0 items-center justify-center rounded-xl border border-neutral-700 bg-neutral-800 p-3 text-neutral-200 transition-colors hover:bg-neutral-700 hover:text-white"
+                                    className="inline-flex items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 p-3 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                                    title="Open link in new tab"
                                 >
-                                    <ExternalLink className="h-5 w-5" />
+                                    <ExternalLink className="h-4 w-4" />
                                 </a>
-                            </div>
 
-                            <p className="max-w-[400px] truncate text-xs text-neutral-400">
-                                <span className="text-neutral-500">Destination:</span> {result.originalUrl}
-                            </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQrDrawer(!showQrDrawer)}
+                                    className={`inline-flex items-center justify-center rounded-2xl border p-3 transition-colors ${
+                                        showQrDrawer
+                                            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                                            : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                                    }`}
+                                    title="Toggle QR Code"
+                                >
+                                    <QrCode className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* QR Code Section */}
-                        <div className="flex shrink-0 flex-col items-center gap-2.5 rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4">
-                            <div className="rounded-lg bg-white p-1.5">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(result.shortUrl)}`}
-                                    alt="QR Code"
-                                    className="h-20 w-20"
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                onClick={handleDownloadQR}
-                                className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300"
-                            >
-                                <Download className="h-3.5 w-3.5" />
-                                Download QR
-                            </button>
+                        {/* Destination Indicator */}
+                        <div className="flex items-center gap-2 text-xs text-zinc-400">
+                            <span className="text-zinc-500 shrink-0">Target:</span>
+                            <span className="truncate font-mono text-zinc-400 max-w-[450px]" title={result.originalUrl}>
+                                {result.originalUrl}
+                            </span>
                         </div>
+
+                        {/* QR Code Accordion Drawer */}
+                        {showQrDrawer && (
+                            <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-5 backdrop-blur-md animate-in fade-in slide-in-from-top-2 sm:flex-row sm:justify-between sm:gap-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="rounded-2xl bg-white p-2.5 shadow-lg">
+                                        <QRCodeCanvas
+                                            id={qrCanvasId}
+                                            value={result.shortUrl}
+                                            size={120}
+                                            level="H"
+                                        />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-white">Instant QR Code</h4>
+                                        <p className="mt-0.5 text-[11px] text-zinc-400 leading-relaxed max-w-[220px]">
+                                            High-resolution QR code for print, merchandise, or live displays.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadQR}
+                                    className="mt-3 sm:mt-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-700"
+                                >
+                                    <Download className="h-3.5 w-3.5" />
+                                    <span>Download PNG</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* Bulk Shortener Modal */}
+            {/* Bulk Shortener Modal Integration */}
             <BulkShortenerModal
                 isOpen={isBulkOpen}
                 onClose={() => setIsBulkOpen(false)}

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
 import { Lock, AlertCircle } from "lucide-react";
@@ -114,12 +115,26 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         }
     }
 
-    // 7. If all checks pass, increment the click counter
-    // We await this so the database write completes before Vercel terminates the function during redirect
+    // 7. Device-Based Smart Routing (Inspect User-Agent)
+    const headerList = await headers();
+    const userAgent = headerList.get("user-agent") || "";
+
+    const isIos = /iphone|ipad|ipod/i.test(userAgent);
+    const isAndroid = /android/i.test(userAgent);
+
+    let destinationUrl = data.originalUrl;
+    if (isIos && data.iosUrl && typeof data.iosUrl === "string" && data.iosUrl.trim()) {
+        destinationUrl = data.iosUrl.trim();
+    } else if (isAndroid && data.androidUrl && typeof data.androidUrl === "string" && data.androidUrl.trim()) {
+        destinationUrl = data.androidUrl.trim();
+    }
+
+    // 8. If all checks pass, increment the click counter
+    // We await this so the database write completes before redirect terminates the function
     await linkRef.update({
         totalClicks: FieldValue.increment(1)
     });
 
-    // 8. Execute the routing!
-    redirect(data.originalUrl);
+    // 9. Execute the device-smart routing redirect!
+    redirect(destinationUrl);
 }

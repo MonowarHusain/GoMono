@@ -117,6 +117,8 @@ export default function DashboardPage() {
                                 return {
                                     alias: data.alias || docSnap.id,
                                     originalUrl: data.originalUrl || "",
+                                    iosUrl: data.iosUrl || null,
+                                    androidUrl: data.androidUrl || null,
                                     domain: data.domain || "go.mono.bro.bd",
                                     totalClicks: typeof data.totalClicks === "number" ? data.totalClicks : 0,
                                     createdAt: safeCreatedAt,

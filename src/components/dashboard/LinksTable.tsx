@@ -7,13 +7,15 @@ import EditLinkModal from "./EditLinkModal";
 import { toast } from "sonner";
 import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
-    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X
+    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone
 } from "lucide-react";
 import { notifyLinkDeleted } from "@/lib/events";
 
 export type Link = {
     alias: string;
     originalUrl: string;
+    iosUrl?: string | null;
+    androidUrl?: string | null;
     domain?: string;
     totalClicks: number;
     createdAt: string;
@@ -274,6 +276,15 @@ export default function LinksTable({
                                                             Burned
                                                         </span>
                                                     )}
+                                                    {Boolean(link.iosUrl || link.androidUrl) && (
+                                                        <span
+                                                            title={`Smart Device Routing:\n${link.iosUrl ? `iOS: ${link.iosUrl}\n` : ''}${link.androidUrl ? `Android: ${link.androidUrl}` : ''}`}
+                                                            className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400"
+                                                        >
+                                                            <Smartphone className="h-3 w-3" />
+                                                            <span>Smart Routing</span>
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {/* Tag Pills */}
@@ -312,6 +323,20 @@ export default function LinksTable({
                                                 <div className="max-w-[200px] md:max-w-[300px] truncate text-slate-700 dark:text-neutral-300">
                                                     {link.originalUrl}
                                                 </div>
+                                                {(link.iosUrl || link.androidUrl) && (
+                                                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                                                        {link.iosUrl && (
+                                                            <span title={link.iosUrl} className="truncate max-w-[150px]">
+                                                                iOS: {link.iosUrl.replace(/^https?:\/\//, "")}
+                                                            </span>
+                                                        )}
+                                                        {link.androidUrl && (
+                                                            <span title={link.androidUrl} className="truncate max-w-[150px]">
+                                                                Android: {link.androidUrl.replace(/^https?:\/\//, "")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800/50 px-3 py-1 w-fit border border-slate-300/50 dark:border-neutral-700/50">

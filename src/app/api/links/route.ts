@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl } = body;
 
         if (!originalUrl || typeof originalUrl !== "string" || !originalUrl.trim()) {
             return NextResponse.json({ error: "Original URL is required" }, { status: 400 });
@@ -42,6 +42,25 @@ export async function POST(req: Request) {
         let formattedUrl = originalUrl.trim();
         if (!/^https?:\/\//i.test(formattedUrl)) {
             formattedUrl = `https://${formattedUrl}`;
+        }
+
+        // Format and validate optional Device-Based Smart Routing URLs
+        let formattedIosUrl: string | null = null;
+        if (iosUrl && typeof iosUrl === "string" && iosUrl.trim()) {
+            let cleanIos = iosUrl.trim();
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(cleanIos)) {
+                cleanIos = `https://${cleanIos}`;
+            }
+            formattedIosUrl = cleanIos;
+        }
+
+        let formattedAndroidUrl: string | null = null;
+        if (androidUrl && typeof androidUrl === "string" && androidUrl.trim()) {
+            let cleanAndroid = androidUrl.trim();
+            if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(cleanAndroid)) {
+                cleanAndroid = `https://${cleanAndroid}`;
+            }
+            formattedAndroidUrl = cleanAndroid;
         }
 
         let finalExpiresAt = expiresAt ? new Date(expiresAt) : null;
@@ -82,6 +101,8 @@ export async function POST(req: Request) {
         await linkRef.set({
             alias,
             originalUrl: formattedUrl,
+            iosUrl: formattedIosUrl,
+            androidUrl: formattedAndroidUrl,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),
@@ -158,6 +179,8 @@ export async function GET(req: Request) {
             return {
                 alias: data.alias,
                 originalUrl: data.originalUrl,
+                iosUrl: data.iosUrl || null,
+                androidUrl: data.androidUrl || null,
                 domain: data.domain,
                 isProtected: data.isProtected || false,
                 totalClicks: data.totalClicks || 0,

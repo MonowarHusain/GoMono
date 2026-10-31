@@ -32,6 +32,19 @@ export async function createLink(formData: FormData) {
             ? tagsInput.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
             : [];
 
+        // Device-Based Smart Routing
+        const rawIosUrl = (formData.get("iosUrl") as string)?.trim() || null;
+        let iosUrl: string | null = null;
+        if (rawIosUrl) {
+            iosUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawIosUrl) ? rawIosUrl : `https://${rawIosUrl}`;
+        }
+
+        const rawAndroidUrl = (formData.get("androidUrl") as string)?.trim() || null;
+        let androidUrl: string | null = null;
+        if (rawAndroidUrl) {
+            androidUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawAndroidUrl) ? rawAndroidUrl : `https://${rawAndroidUrl}`;
+        }
+
         const linkRef = adminDb.collection("links").doc(alias);
         const doc = await linkRef.get();
 
@@ -39,6 +52,8 @@ export async function createLink(formData: FormData) {
 
         await linkRef.set({
             originalUrl,
+            iosUrl,
+            androidUrl,
             alias,
             domain,    // Saved to DB
             createdAt: new Date(),
@@ -94,9 +109,24 @@ export async function updateLink(oldAlias: string, formData: FormData) {
         let newAlias = (formData.get("alias") as string) || oldAlias;
         newAlias = newAlias.toLowerCase().trim();
 
+        // Device-Based Smart Routing
+        const rawIosUrl = (formData.get("iosUrl") as string)?.trim() || null;
+        let iosUrl: string | null = null;
+        if (rawIosUrl) {
+            iosUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawIosUrl) ? rawIosUrl : `https://${rawIosUrl}`;
+        }
+
+        const rawAndroidUrl = (formData.get("androidUrl") as string)?.trim() || null;
+        let androidUrl: string | null = null;
+        if (rawAndroidUrl) {
+            androidUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawAndroidUrl) ? rawAndroidUrl : `https://${rawAndroidUrl}`;
+        }
+
         // Build the update payload
         const updateData: Record<string, unknown> = {
             originalUrl,
+            iosUrl,
+            androidUrl,
             domain, // Ensure domain updates are captured
             expiresAt,
             isProtected,

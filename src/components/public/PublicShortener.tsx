@@ -19,6 +19,7 @@ import {
     QrCode,
     SlidersHorizontal,
     CornerDownLeft,
+    Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -54,6 +55,8 @@ export default function PublicShortener() {
     const [maxClicks, setMaxClicks] = useState("");
     const [expiresAt, setExpiresAt] = useState("");
     const [password, setPassword] = useState("");
+    const [iosUrl, setIosUrl] = useState("");
+    const [androidUrl, setAndroidUrl] = useState("");
 
     // Result & feedback state
     const [result, setResult] = useState<ShortenResult | null>(null);
@@ -69,6 +72,8 @@ export default function PublicShortener() {
         setMaxClicks("");
         setExpiresAt("");
         setPassword("");
+        setIosUrl("");
+        setAndroidUrl("");
         setIsAdvancedOpen(false);
         setShowQrDrawer(false);
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -124,6 +129,8 @@ export default function PublicShortener() {
         try {
             const payload = {
                 originalUrl: originalUrl.trim(),
+                iosUrl: iosUrl.trim() || undefined,
+                androidUrl: androidUrl.trim() || undefined,
                 customAlias: customAlias.trim() || undefined,
                 domain: selectedDomain,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
@@ -161,6 +168,8 @@ export default function PublicShortener() {
             notifyLinkCreated({
                 alias: data.alias,
                 originalUrl: originalUrl.trim(),
+                iosUrl: iosUrl.trim() || null,
+                androidUrl: androidUrl.trim() || null,
                 domain: cleanDomain,
                 totalClicks: 0,
                 createdAt: new Date().toISOString(),
@@ -231,7 +240,7 @@ export default function PublicShortener() {
     };
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
-    const hasAdvancedFilters = !!(customAlias || maxClicks || expiresAt || password);
+    const hasAdvancedFilters = !!(customAlias || maxClicks || expiresAt || password || iosUrl || androidUrl);
 
     return (
         <div className="w-full max-w-2xl px-2 sm:px-0">
@@ -388,6 +397,8 @@ export default function PublicShortener() {
                                                 setMaxClicks("");
                                                 setExpiresAt("");
                                                 setPassword("");
+                                                setIosUrl("");
+                                                setAndroidUrl("");
                                             }}
                                             className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                                         >
@@ -450,6 +461,34 @@ export default function PublicShortener() {
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="Passcode protection"
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-blue-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-blue-500/50"
+                                        />
+                                    </div>
+
+                                    {/* Device Smart Routing: iOS Target */}
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
+                                            <Smartphone className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={iosUrl}
+                                            onChange={(e) => setIosUrl(e.target.value)}
+                                            placeholder="iOS URL (App Store / deep link)"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-blue-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-blue-500/50"
+                                        />
+                                    </div>
+
+                                    {/* Device Smart Routing: Android Target */}
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
+                                            <Smartphone className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={androidUrl}
+                                            onChange={(e) => setAndroidUrl(e.target.value)}
+                                            placeholder="Android URL (Play Store / deep link)"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-emerald-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-emerald-500/50"
                                         />
                                     </div>
                                 </div>

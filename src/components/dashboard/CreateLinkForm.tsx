@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
     Link2, Sparkles, Tag, Flame, Clock, Lock,
     ChevronDown, ChevronUp, Share2, Navigation,
-    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe
+    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
@@ -77,9 +77,13 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 : [];
             const rawMaxClicks = formData.get("maxClicks") as string | null;
             const rawPassword = formData.get("password") as string | null;
+            const rawIosUrl = (formData.get("iosUrl") as string | null)?.trim() || null;
+            const rawAndroidUrl = (formData.get("androidUrl") as string | null)?.trim() || null;
 
             const data = {
                 originalUrl: finalOriginalUrl,
+                iosUrl: rawIosUrl || undefined,
+                androidUrl: rawAndroidUrl || undefined,
                 customAlias: formData.get("customAlias"),
                 domain: selectedDomain,
                 tags: rawTags,
@@ -123,6 +127,8 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             const newLinkItem: Link = {
                 alias: responseData.alias,
                 originalUrl: finalOriginalUrl,
+                iosUrl: rawIosUrl,
+                androidUrl: rawAndroidUrl,
                 domain: selectedDomain,
                 totalClicks: 0,
                 createdAt: new Date().toISOString(),
@@ -271,6 +277,21 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                     <Lock className="h-4 w-4 text-neutral-400" />
                                 </div>
                                 <input name="password" type="password" placeholder="Require Password" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-neutral-500/50 focus:ring-4 focus:ring-neutral-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-neutral-500/50" />
+                            </div>
+
+                            {/* Device-Based Smart Routing */}
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Smartphone className="h-4 w-4 text-blue-400" />
+                                </div>
+                                <input name="iosUrl" type="url" placeholder="iOS Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <Smartphone className="h-4 w-4 text-emerald-400" />
+                                </div>
+                                <input name="androidUrl" type="url" placeholder="Android Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-emerald-500/50" />
                             </div>
                         </div>
                     )}

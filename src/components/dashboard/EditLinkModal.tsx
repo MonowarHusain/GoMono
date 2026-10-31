@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { updateLink } from "@/app/dashboard/actions";
 import { toast } from "sonner";
-import { Link2, Shield, Clock, Loader2, Tags, Flame, X } from "lucide-react";
+import { Link2, Shield, Clock, Loader2, Tags, Flame, X, Smartphone } from "lucide-react";
 import { notifyLinkCreated } from "@/lib/events";
 
 type LinkData = {
     alias: string;
     originalUrl: string;
+    iosUrl?: string | null;
+    androidUrl?: string | null;
     domain?: string; // <-- Added domain to the type
     isProtected?: boolean;
     maxClicks?: number | null;
@@ -178,6 +180,44 @@ export default function EditLinkModal({ link, onClose }: { link: LinkData; onClo
                             className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 py-3 px-4 text-sm text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50"
                         />
                     )}
+
+                    {/* Device-Based Smart Routing (iOS & Android) */}
+                    <div className="rounded-xl border border-slate-200/50 dark:border-neutral-800/50 bg-neutral-50 dark:bg-neutral-950 p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Smartphone className="h-4 w-4 text-blue-500" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-neutral-300">
+                                Device-Based Smart Routing (Optional)
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-medium text-slate-500 dark:text-neutral-400">
+                                    iOS Destination (iPhone / iPad)
+                                </label>
+                                <input
+                                    name="iosUrl"
+                                    type="url"
+                                    defaultValue={link.iosUrl || ""}
+                                    disabled={isLoading}
+                                    placeholder="https://apps.apple.com/... or app URL"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 py-2 px-3 text-xs text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-medium text-slate-500 dark:text-neutral-400">
+                                    Android Destination
+                                </label>
+                                <input
+                                    name="androidUrl"
+                                    type="url"
+                                    defaultValue={link.androidUrl || ""}
+                                    disabled={isLoading}
+                                    placeholder="https://play.google.com/... or app URL"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 py-2 px-3 text-xs text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500/50"
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="flex justify-end gap-3 mt-2">
                         <button

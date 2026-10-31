@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode } from "lucide-react";
+import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode, FileSpreadsheet } from "lucide-react";
 import PublicShortener from "@/components/public/PublicShortener";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 
@@ -30,9 +30,9 @@ export default function LandingPage() {
           </Link>
 
           {/* Right Header Utilities */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Live Operational Status */}
-            <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-zinc-100/70 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-400 backdrop-blur-md">
+            <div className="hidden lg:inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-zinc-100/70 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-400 backdrop-blur-md">
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
               <span>Edge Network: Online</span>
             </div>
@@ -43,7 +43,19 @@ export default function LandingPage() {
               className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 backdrop-blur-md transition-all hover:border-zinc-300 hover:bg-zinc-200/60 hover:text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               <QrCode className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>QR Studio</span>
+              <span className="hidden min-[480px]:inline">QR Studio</span>
+            </Link>
+
+            {/* CSV Studio Link */}
+            <Link
+              href="/csv-studio"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-50/60 px-3 py-1.5 text-xs font-semibold text-emerald-800 backdrop-blur-md transition-all hover:border-emerald-500/50 hover:bg-emerald-100/80 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-900/40"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden min-[480px]:inline">CSV Studio</span>
+              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                Pro
+              </span>
             </Link>
 
             {/* Dark/Light Mode Theme Toggle */}
@@ -54,8 +66,8 @@ export default function LandingPage() {
               href="/login"
               className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100/80 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 backdrop-blur-md transition-all hover:border-zinc-300 hover:bg-zinc-200/60 hover:text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
-              <span>Admin Portal</span>
-              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              <span>Admin</span>
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 hidden sm:inline" />
             </Link>
           </div>
         </div>
@@ -160,9 +172,13 @@ export default function LandingPage() {
             <span>Lightning Fast Edge Redirection</span>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6 flex-wrap justify-center">
             <Link href="/qr" className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
               QR Studio
+            </Link>
+            <span>•</span>
+            <Link href="/csv-studio" className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
+              CSV Studio
             </Link>
             <span>•</span>
             <Link href="/login" className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, QrCode } from "lucide-react";
+import { ArrowLeft, QrCode, FileSpreadsheet } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 import { QrStudioView } from "@/components/qr/QrStudio";
 
@@ -42,7 +42,18 @@ export default function QrStudioPage() {
                     </div>
 
                     {/* Right Utilities */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Link
+                            href="/csv-studio"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-50/60 px-3 py-1.5 text-xs font-semibold text-emerald-800 backdrop-blur-md transition-all hover:border-emerald-500/50 hover:bg-emerald-100/80 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-900/40"
+                        >
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="hidden min-[480px]:inline">CSV Studio</span>
+                            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                Pro
+                            </span>
+                        </Link>
+
                         <ThemeToggle />
 
                         <Link
@@ -90,12 +101,15 @@ export default function QrStudioPage() {
                         <span>•</span>
                         <span>Edge-Accelerated URL & QR Infrastructure</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                         <Link href="/" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
                             Shortener
                         </Link>
-                        <Link href="/qr" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+                        <Link href="/qr" className="hover:text-zinc-900 dark:hover:text-white transition-colors font-medium">
                             QR Studio
+                        </Link>
+                        <Link href="/csv-studio" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+                            CSV Studio
                         </Link>
                         <Link href="/login" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
                             Admin

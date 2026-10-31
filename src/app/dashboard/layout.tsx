@@ -6,7 +6,7 @@ import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
-import { Link2, Table, QrCode } from "lucide-react";
+import { Link2, FileSpreadsheet, QrCode } from "lucide-react";
 
 export default function DashboardLayout({
     children,
@@ -90,8 +90,11 @@ export default function DashboardLayout({
                                         : "text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white"
                                 }`}
                             >
-                                <Table className="h-3.5 w-3.5" />
+                                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                                 <span>CSV Studio</span>
+                                <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Pro
+                                </span>
                             </Link>
 
                             <Link

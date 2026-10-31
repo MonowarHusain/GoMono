@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
+import Link from "next/link";
 import {
     Link2,
     Sparkles,
@@ -23,6 +24,7 @@ import {
     Shield,
     Eye,
     EyeOff,
+    FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -412,6 +414,19 @@ export default function PublicShortener() {
                                         50 max
                                     </span>
                                 </button>
+
+                                {/* Standalone CSV Studio Link */}
+                                <Link
+                                    href="/csv-studio"
+                                    className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-emerald-600 hover:text-emerald-700 transition-colors dark:text-emerald-400 dark:hover:text-emerald-300"
+                                    title="Open Standalone CSV Studio & Data Grid"
+                                >
+                                    <FileSpreadsheet className="h-3 w-3 text-emerald-500 group-hover:scale-110 transition-transform" />
+                                    <span>CSV Studio</span>
+                                    <span className="rounded bg-emerald-100 dark:bg-emerald-950/60 px-1 py-0.2 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                                        Pro
+                                    </span>
+                                </Link>
                             </div>
                         </div>
 

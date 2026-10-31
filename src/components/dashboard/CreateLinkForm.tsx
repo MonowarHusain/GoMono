@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-    Link2, Sparkles, Tag, Flame, Clock, Lock,
+    Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
     Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone
 } from "lucide-react";
@@ -14,7 +14,8 @@ import { notifyLinkCreated } from "@/lib/events";
 // Accept onLinkCreated with optional newly created Link item
 export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (newLink?: Link) => void }) {
     // UI Toggles
-    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+    const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+    const [isRoutingOpen, setIsRoutingOpen] = useState(false);
     const [isUtmOpen, setIsUtmOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -120,7 +121,8 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             });
 
             form.reset();
-            setIsAdvancedOpen(false);
+            setIsSecurityOpen(false);
+            setIsRoutingOpen(false);
             setIsUtmOpen(false);
 
             // Construct optimistic link payload
@@ -133,6 +135,8 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 totalClicks: 0,
                 createdAt: new Date().toISOString(),
                 isProtected: Boolean(rawPassword),
+                password: rawPassword,
+                expiresAt: (formData.get("expiresAt") as string) || null,
                 maxClicks: rawMaxClicks ? parseInt(rawMaxClicks, 10) : null,
                 tags: parsedTags,
                 isPublic: false,
@@ -238,19 +242,90 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                     </div>
                 </div>
 
-                {/* Advanced Settings Toggle */}
-                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900/30">
+                {/* Security & Expiration Collapsible Section */}
+                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900/30 overflow-hidden">
                     <button
                         type="button"
-                        onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                        onClick={() => setIsSecurityOpen(!isSecurityOpen)}
                         className="flex w-full items-center justify-between p-4 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
                     >
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Advanced Settings</span>
-                        {isAdvancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <div className="flex items-center gap-2.5">
+                            <Shield className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                                Security & Expiration
+                            </span>
+                        </div>
+                        {isSecurityOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
 
-                    {isAdvancedOpen && (
-                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-2 dark:border-neutral-800">
+                    {isSecurityOpen && (
+                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-3 dark:border-neutral-800">
+                            {/* Password input */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <Lock className="h-3.5 w-3.5 text-indigo-500" />
+                                    <span>Passcode Protection</span>
+                                </label>
+                                <input
+                                    name="password"
+                                    type="password"
+                                    placeholder="Enter access password"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                />
+                                <p className="text-[11px] text-neutral-400">Protects link behind password unlock screen</p>
+                            </div>
+
+                            {/* Expiration date */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                    <span>Expiration Date</span>
+                                </label>
+                                <input
+                                    name="expiresAt"
+                                    type="datetime-local"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 [color-scheme:light] dark:[color-scheme:dark]"
+                                />
+                                <p className="text-[11px] text-neutral-400">Link expires automatically after this date</p>
+                            </div>
+
+                            {/* Max click limit */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <Flame className="h-3.5 w-3.5 text-red-500" />
+                                    <span>Max Click Limit</span>
+                                </label>
+                                <input
+                                    name="maxClicks"
+                                    type="number"
+                                    min="1"
+                                    placeholder="e.g. 100 visits"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                />
+                                <p className="text-[11px] text-neutral-400">Deactivates after reaching max clicks</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Tags & Routing Collapsible Section */}
+                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900/30 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => setIsRoutingOpen(!isRoutingOpen)}
+                        className="flex w-full items-center justify-between p-4 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <Tag className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                                Tags & Smart Device Routing
+                            </span>
+                        </div>
+                        {isRoutingOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+
+                    {isRoutingOpen && (
+                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-3 dark:border-neutral-800">
                             <div className="relative">
                                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                     <Tag className="h-4 w-4 text-neutral-400" />
@@ -258,28 +333,6 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                 <input name="tags" type="text" placeholder="Tags (e.g. event, personal)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
                             </div>
 
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Flame className="h-4 w-4 text-red-400" />
-                                </div>
-                                <input name="maxClicks" type="number" min="1" placeholder="Burn limit (e.g. 100)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-red-500/50" />
-                            </div>
-
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Clock className="h-4 w-4 text-amber-400" />
-                                </div>
-                                <input name="expiresAt" type="datetime-local" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400 dark:focus:border-amber-500/50" />
-                            </div>
-
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Lock className="h-4 w-4 text-neutral-400" />
-                                </div>
-                                <input name="password" type="password" placeholder="Require Password" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-neutral-500/50 focus:ring-4 focus:ring-neutral-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-neutral-500/50" />
-                            </div>
-
-                            {/* Device-Based Smart Routing */}
                             <div className="relative">
                                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                     <Smartphone className="h-4 w-4 text-blue-400" />

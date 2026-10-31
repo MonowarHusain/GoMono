@@ -20,6 +20,9 @@ import {
     SlidersHorizontal,
     CornerDownLeft,
     Smartphone,
+    Shield,
+    Eye,
+    EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -44,7 +47,9 @@ export default function PublicShortener() {
     const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [isStudioOpen, setIsStudioOpen] = useState(false);
     const [studioUrl, setStudioUrl] = useState("");
+    const [isSecurityOpen, setIsSecurityOpen] = useState(false);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [isDomainOpen, setIsDomainOpen] = useState(false);
     const [showQrDrawer, setShowQrDrawer] = useState(false);
 
@@ -74,7 +79,9 @@ export default function PublicShortener() {
         setPassword("");
         setIosUrl("");
         setAndroidUrl("");
+        setIsSecurityOpen(false);
         setIsAdvancedOpen(false);
+        setShowPassword(false);
         setShowQrDrawer(false);
         setTimeout(() => inputRef.current?.focus(), 50);
     };
@@ -173,6 +180,10 @@ export default function PublicShortener() {
                 domain: cleanDomain,
                 totalClicks: 0,
                 createdAt: new Date().toISOString(),
+                isProtected: Boolean(password.trim()),
+                password: password.trim() || null,
+                expiresAt: expiresAt || null,
+                maxClicks: maxClicks ? parseInt(maxClicks, 10) : null,
                 isPublic: true,
                 createdBy: "public",
                 isDemo: false,
@@ -240,7 +251,9 @@ export default function PublicShortener() {
     };
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
-    const hasAdvancedFilters = !!(customAlias || maxClicks || expiresAt || password || iosUrl || androidUrl);
+    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
+    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl);
+    const hasAdvancedFilters = hasSecurityOptions || hasRoutingOptions;
 
     return (
         <div className="w-full max-w-2xl px-2 sm:px-0">
@@ -338,22 +351,43 @@ export default function PublicShortener() {
 
                         {/* SUBTLE UTILITY BAR BELOW THE COMMAND PILL */}
                         <div className="mt-2.5 flex items-center justify-between px-2 text-xs">
-                            {/* Advanced Options Accordion Trigger */}
-                            <button
-                                type="button"
-                                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-                                className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-colors ${
-                                    isAdvancedOpen || hasAdvancedFilters
-                                        ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
-                                        : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-                                }`}
-                            >
-                                <SlidersHorizontal className="h-3 w-3" />
-                                <span>{isAdvancedOpen ? "Hide Options" : "Advanced Options"}</span>
-                                {hasAdvancedFilters && (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
-                                )}
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                                {/* Sleek Collapsible Security & Expiration Accordion Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSecurityOpen(!isSecurityOpen)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all ${
+                                        isSecurityOpen || hasSecurityOptions
+                                            ? "text-indigo-600 bg-indigo-50 border border-indigo-200/80 dark:text-indigo-400 dark:bg-indigo-500/10 dark:border-indigo-500/30"
+                                            : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    }`}
+                                >
+                                    <Shield className="h-3 w-3" />
+                                    <span>Security & Expiration</span>
+                                    {hasSecurityOptions && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+                                    )}
+                                    <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isSecurityOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* Routing & Custom Alias Accordion Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${
+                                        isAdvancedOpen || hasRoutingOptions
+                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                            : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    }`}
+                                >
+                                    <SlidersHorizontal className="h-3 w-3" />
+                                    <span>Routing & Alias</span>
+                                    {hasRoutingOptions && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+                                    )}
+                                    <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`} />
+                                </button>
+                            </div>
 
                             <div className="flex items-center gap-1.5">
                                 {/* QR Studio Trigger */}
@@ -382,21 +416,113 @@ export default function PublicShortener() {
                             </div>
                         </div>
 
-                        {/* REFINED ADVANCED DRAWER (Completely hidden until toggled) */}
+                        {/* SLEEK COLLAPSIBLE "SECURITY & EXPIRATION" SECTION */}
+                        {isSecurityOpen && (
+                            <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/50 p-3.5 sm:p-4 shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="mb-3 flex items-center justify-between border-b border-zinc-200/60 pb-2.5 dark:border-zinc-800/60">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                                            <Shield className="h-3.5 w-3.5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Security & Expiration</h4>
+                                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Configure password protection, expiration date, and max click limit</p>
+                                        </div>
+                                    </div>
+                                    {hasSecurityOptions && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPassword("");
+                                                setExpiresAt("");
+                                                setMaxClicks("");
+                                            }}
+                                            className="text-[11px] font-medium text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    {/* Password Field */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                                            <Lock className="h-3 w-3 text-indigo-500 dark:text-indigo-400" />
+                                            <span>Password</span>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                name="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                placeholder="Set access password"
+                                                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-3 pr-8 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
+                                            />
+                                            {password && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                                    title={showPassword ? "Hide password" : "Show password"}
+                                                >
+                                                    {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                        <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">Requires password to unlock</span>
+                                    </div>
+
+                                    {/* Expiration Date Field */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                                            <Clock className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                                            <span>Expiration Date</span>
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            name="expiresAt"
+                                            value={expiresAt}
+                                            onChange={(e) => setExpiresAt(e.target.value)}
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 outline-none transition-colors focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:focus:border-amber-500/50 [color-scheme:light] dark:[color-scheme:dark]"
+                                        />
+                                        <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">Auto-expires after this time</span>
+                                    </div>
+
+                                    {/* Max Click Limit Field */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                                            <Flame className="h-3 w-3 text-orange-500 dark:text-orange-400" />
+                                            <span>Max Click Limit</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="maxClicks"
+                                            min="1"
+                                            value={maxClicks}
+                                            onChange={(e) => setMaxClicks(e.target.value)}
+                                            placeholder="Burn limit (e.g. 50)"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-orange-500/50"
+                                        />
+                                        <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">Deactivates after N clicks</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMPANION COLLAPSIBLE "ROUTING & ALIAS" SECTION */}
                         {isAdvancedOpen && (
                             <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/40 p-3.5 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
                                 <div className="mb-2.5 flex items-center justify-between">
                                     <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                                        Optional Link Customization & Expiry
+                                        Custom Alias & Smart Device Routing
                                     </span>
-                                    {hasAdvancedFilters && (
+                                    {hasRoutingOptions && (
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setCustomAlias("");
-                                                setMaxClicks("");
-                                                setExpiresAt("");
-                                                setPassword("");
                                                 setIosUrl("");
                                                 setAndroidUrl("");
                                             }}
@@ -407,7 +533,7 @@ export default function PublicShortener() {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                                     {/* Custom Alias */}
                                     <div className="relative">
                                         <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
@@ -419,48 +545,6 @@ export default function PublicShortener() {
                                             onChange={(e) => setCustomAlias(e.target.value)}
                                             placeholder="Custom alias (e.g. launch)"
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-purple-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-purple-500/50"
-                                        />
-                                    </div>
-
-                                    {/* Burn limit */}
-                                    <div className="relative">
-                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
-                                            <Flame className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
-                                        </div>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={maxClicks}
-                                            onChange={(e) => setMaxClicks(e.target.value)}
-                                            placeholder="Burn limit (max visits)"
-                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-orange-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-orange-500/50"
-                                        />
-                                    </div>
-
-                                    {/* Expiration date */}
-                                    <div className="relative">
-                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
-                                            <Clock className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-                                        </div>
-                                        <input
-                                            type="datetime-local"
-                                            value={expiresAt}
-                                            onChange={(e) => setExpiresAt(e.target.value)}
-                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 outline-none transition-colors focus:border-amber-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:focus:border-amber-500/50 [color-scheme:light] dark:[color-scheme:dark]"
-                                        />
-                                    </div>
-
-                                    {/* Password protection */}
-                                    <div className="relative">
-                                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
-                                            <Lock className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Passcode protection"
-                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-blue-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-blue-500/50"
                                         />
                                     </div>
 
@@ -587,6 +671,30 @@ export default function PublicShortener() {
                                 {result.originalUrl}
                             </span>
                         </div>
+
+                        {/* Security & Expiration Badges */}
+                        {(password || expiresAt || maxClicks) && (
+                            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                                {password && (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/80 px-2.5 py-1 text-[11px] font-medium text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
+                                        <Lock className="h-3 w-3" />
+                                        <span>Password Protected</span>
+                                    </span>
+                                )}
+                                {expiresAt && (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/80 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-300">
+                                        <Clock className="h-3 w-3" />
+                                        <span>Expires {new Date(expiresAt).toLocaleDateString()}</span>
+                                    </span>
+                                )}
+                                {maxClicks && (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50/80 px-2.5 py-1 text-[11px] font-medium text-orange-700 dark:border-orange-800/60 dark:bg-orange-950/50 dark:text-orange-300">
+                                        <Flame className="h-3 w-3" />
+                                        <span>Max {maxClicks} clicks</span>
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* QR Code Accordion Drawer */}
                         {showQrDrawer && (

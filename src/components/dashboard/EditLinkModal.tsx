@@ -5,17 +5,11 @@ import { updateLink } from "@/app/dashboard/actions";
 import { toast } from "sonner";
 import { Link2, Shield, Clock, Loader2, Tags, Flame, X, Smartphone } from "lucide-react";
 import { notifyLinkCreated } from "@/lib/events";
+import type { Link } from "@/types/link";
 
-type LinkData = {
+type LinkData = Partial<Link> & {
     alias: string;
     originalUrl: string;
-    iosUrl?: string | null;
-    androidUrl?: string | null;
-    domain?: string; // <-- Added domain to the type
-    isProtected?: boolean;
-    maxClicks?: number | null;
-    tags?: string[];
-    expiresAt?: string | null;
 };
 
 export default function EditLinkModal({ link, onClose }: { link: LinkData; onClose: () => void }) {

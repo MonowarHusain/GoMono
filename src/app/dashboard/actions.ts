@@ -17,14 +17,28 @@ export async function createLink(formData: FormData) {
         // Extract domain preference
         const domain = (formData.get("domain") as string) || "to.mono.bro.bd";
 
-        const isProtected = formData.get("isProtected") === "on";
-        const password = formData.get("password") as string | null;
+        const rawPassword = formData.get("password") as string | null;
+        const password = rawPassword && rawPassword.trim() ? rawPassword.trim() : null;
+        const isProtected = formData.get("isProtected") === "on" || !!password;
+
         const expiresAtInput = formData.get("expiresAt") as string;
-        const expiresAt = expiresAtInput ? new Date(expiresAtInput) : null;
+        let expiresAt: Date | null = null;
+        if (expiresAtInput) {
+            const parsedDate = new Date(expiresAtInput);
+            if (!isNaN(parsedDate.getTime())) {
+                expiresAt = parsedDate;
+            }
+        }
 
         // Burn After Reading limit
         const maxClicksInput = formData.get("maxClicks") as string;
-        const maxClicks = maxClicksInput ? parseInt(maxClicksInput, 10) : null;
+        let maxClicks: number | null = null;
+        if (maxClicksInput) {
+            const parsedClicks = parseInt(maxClicksInput, 10);
+            if (!isNaN(parsedClicks) && parsedClicks > 0) {
+                maxClicks = parsedClicks;
+            }
+        }
 
         // Tagging System
         const tagsInput = formData.get("tags") as string;
@@ -89,16 +103,30 @@ export async function deleteLink(alias: string) {
 export async function updateLink(oldAlias: string, formData: FormData) {
     try {
         const originalUrl = formData.get("originalUrl") as string;
-        const isProtected = formData.get("isProtected") === "on";
-        const password = formData.get("password") as string | null;
+        const rawPassword = formData.get("password") as string | null;
+        const password = rawPassword && rawPassword.trim() ? rawPassword.trim() : null;
+        const isProtected = formData.get("isProtected") === "on" || !!password;
+        
         const expiresAtInput = formData.get("expiresAt") as string;
-        const expiresAt = expiresAtInput ? new Date(expiresAtInput) : null;
+        let expiresAt: Date | null = null;
+        if (expiresAtInput) {
+            const parsedDate = new Date(expiresAtInput);
+            if (!isNaN(parsedDate.getTime())) {
+                expiresAt = parsedDate;
+            }
+        }
 
         // Extract the updated domain
         const domain = (formData.get("domain") as string) || "to.mono.bro.bd";
 
         const maxClicksInput = formData.get("maxClicks") as string;
-        const maxClicks = maxClicksInput ? parseInt(maxClicksInput, 10) : null;
+        let maxClicks: number | null = null;
+        if (maxClicksInput) {
+            const parsedClicks = parseInt(maxClicksInput, 10);
+            if (!isNaN(parsedClicks) && parsedClicks > 0) {
+                maxClicks = parsedClicks;
+            }
+        }
 
         const tagsInput = formData.get("tags") as string;
         const tags = tagsInput

@@ -37,8 +37,19 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
 
     // 4. Security Check: Expiration Date
     if (data.expiresAt) {
-        const expirationDate = new Date(data.expiresAt);
-        if (expirationDate < new Date()) {
+        let expirationDate: Date | null = null;
+        if (typeof data.expiresAt.toDate === "function") {
+            expirationDate = data.expiresAt.toDate();
+        } else if (data.expiresAt instanceof Date) {
+            expirationDate = data.expiresAt;
+        } else if (typeof data.expiresAt === "string" || typeof data.expiresAt === "number") {
+            const parsed = new Date(data.expiresAt);
+            if (!isNaN(parsed.getTime())) {
+                expirationDate = parsed;
+            }
+        }
+
+        if (expirationDate && expirationDate < new Date()) {
             return (
                 <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-neutral-950">
                     <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-50/50 p-8 text-center dark:bg-red-500/10">
@@ -54,22 +65,15 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     }
 
     // 5. Security Check: Burn Limit (Max Clicks)
-    if (data.maxClicks && data.totalClicks >= data.maxClicks) {
+    if (typeof data.maxClicks === "number" && data.maxClicks > 0 && (data.totalClicks || 0) >= data.maxClicks) {
         // Redirect them immediately to the burned page
         redirect("/burned");
     }
 
-    // (Optional) You can also do the same thing for expired links if you create an /expired page!
-    if (data.expiresAt) {
-        const expirationDate = new Date(data.expiresAt);
-        if (expirationDate < new Date()) {
-            redirect("/burned"); // Or point to a dedicated expired page
-        }
-    }
-
     // 6. Security Check: Password Protection
-    if (data.isProtected) {
-        if (attemptedPassword !== data.password) {
+    if (data.isProtected || (data.password && typeof data.password === "string")) {
+        const linkPassword = data.password;
+        if (linkPassword && attemptedPassword !== linkPassword) {
             // Render the Password Unlock UI
             return (
                 <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 transition-colors duration-300 dark:bg-neutral-950">

@@ -10,22 +10,9 @@ import {
     ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone
 } from "lucide-react";
 import { notifyLinkDeleted } from "@/lib/events";
+import type { Link } from "@/types/link";
 
-export type Link = {
-    alias: string;
-    originalUrl: string;
-    iosUrl?: string | null;
-    androidUrl?: string | null;
-    domain?: string;
-    totalClicks: number;
-    createdAt: string;
-    isProtected?: boolean;
-    maxClicks?: number | null;
-    tags?: string[];
-    isPublic?: boolean;
-    createdBy?: string;
-    isDemo?: boolean;
-};
+export type { Link };
 
 type FilterType = "all" | "mine" | "public";
 
@@ -271,6 +258,11 @@ export default function LinksTable({
                                                             <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
                                                         </span>
                                                     )}
+                                                    {link.expiresAt && new Date(link.expiresAt) < new Date() && (
+                                                        <span className="flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                                                            Expired
+                                                        </span>
+                                                    )}
                                                     {link.maxClicks && link.totalClicks >= link.maxClicks && (
                                                         <span className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-500 uppercase tracking-wider">
                                                             Burned
@@ -301,6 +293,7 @@ export default function LinksTable({
                                                 <div className="text-xs text-slate-600 dark:text-slate-500 mt-2">
                                                     {new Date(link.createdAt).toLocaleDateString()}
                                                     {link.maxClicks && ` • Limit: ${link.maxClicks} clicks`}
+                                                    {link.expiresAt && ` • Expires: ${new Date(link.expiresAt).toLocaleDateString()}`}
                                                 </div>
                                             </td>
 

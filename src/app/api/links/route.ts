@@ -3,6 +3,7 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import crypto from "crypto";
+import type { CreateLinkInput } from "@/types/link";
 
 export async function POST(req: Request) {
     try {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
             }
         }
 
-        const body = await req.json();
+        const body: CreateLinkInput = await req.json();
         const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl } = body;
 
         if (!originalUrl || typeof originalUrl !== "string" || !originalUrl.trim()) {
@@ -63,8 +64,24 @@ export async function POST(req: Request) {
             formattedAndroidUrl = cleanAndroid;
         }
 
-        let finalExpiresAt = expiresAt ? new Date(expiresAt) : null;
-        let finalMaxClicks = maxClicks ? parseInt(maxClicks, 10) : null;
+        // Process Security Options: Expiration Date, Max Clicks, Password
+        let finalExpiresAt: Date | null = null;
+        if (expiresAt) {
+            const parsedDate = new Date(expiresAt);
+            if (!isNaN(parsedDate.getTime())) {
+                finalExpiresAt = parsedDate;
+            }
+        }
+
+        let finalMaxClicks: number | null = null;
+        if (maxClicks !== undefined && maxClicks !== null && maxClicks !== "") {
+            const parsedClicks = typeof maxClicks === "number" ? maxClicks : parseInt(String(maxClicks), 10);
+            if (!isNaN(parsedClicks) && parsedClicks > 0) {
+                finalMaxClicks = parsedClicks;
+            }
+        }
+
+        const cleanPassword = typeof password === "string" && password.trim() ? password.trim() : null;
 
         if (isDemoUser) {
             const tomorrow = new Date();
@@ -106,8 +123,8 @@ export async function POST(req: Request) {
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),
-            isProtected: !!password,
-            password: password || null,
+            isProtected: !!cleanPassword,
+            password: cleanPassword,
             maxClicks: finalMaxClicks,
             expiresAt: finalExpiresAt,
             tags: tagsArray,
@@ -183,6 +200,7 @@ export async function GET(req: Request) {
                 androidUrl: data.androidUrl || null,
                 domain: data.domain,
                 isProtected: data.isProtected || false,
+                password: data.password || null,
                 totalClicks: data.totalClicks || 0,
                 createdAt: safeCreatedAt,
                 expiresAt: safeExpiresAt,

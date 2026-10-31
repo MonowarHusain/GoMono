@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
+import QrStudioModal from "@/components/qr/QrStudio";
 import { notifyLinkCreated } from "@/lib/events";
 
 interface ShortenResult {
@@ -40,6 +41,8 @@ export default function PublicShortener() {
     const qrCanvasId = useId();
     const [loading, setLoading] = useState(false);
     const [isBulkOpen, setIsBulkOpen] = useState(false);
+    const [isStudioOpen, setIsStudioOpen] = useState(false);
+    const [studioUrl, setStudioUrl] = useState("");
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     const [isDomainOpen, setIsDomainOpen] = useState(false);
     const [showQrDrawer, setShowQrDrawer] = useState(false);
@@ -69,6 +72,11 @@ export default function PublicShortener() {
         setIsAdvancedOpen(false);
         setShowQrDrawer(false);
         setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const handleOpenStudio = (targetUrl?: string) => {
+        setStudioUrl(targetUrl || result?.shortUrl || originalUrl.trim() || "https://to.mono.bro.bd");
+        setIsStudioOpen(true);
     };
 
     // Global keyboard shortcut: Press '/' to focus input, 'Esc' to reset on result view
@@ -338,18 +346,31 @@ export default function PublicShortener() {
                                 )}
                             </button>
 
-                            {/* Bulk Shortener Trigger */}
-                            <button
-                                type="button"
-                                onClick={() => setIsBulkOpen(true)}
-                                className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-zinc-500 hover:text-zinc-800 transition-colors dark:text-zinc-400 dark:hover:text-zinc-200"
-                            >
-                                <Layers className="h-3 w-3 text-zinc-400 group-hover:scale-110 group-hover:text-indigo-600 dark:text-zinc-500 dark:group-hover:text-indigo-400 transition-transform" />
-                                <span>Bulk Mode</span>
-                                <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
-                                    50 max
-                                </span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                                {/* QR Studio Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpenStudio()}
+                                    className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-zinc-500 hover:text-zinc-800 transition-colors dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    title="Open Custom QR Code Studio"
+                                >
+                                    <QrCode className="h-3 w-3 text-zinc-400 group-hover:scale-110 group-hover:text-indigo-600 dark:text-zinc-500 dark:group-hover:text-indigo-400 transition-transform" />
+                                    <span>QR Studio</span>
+                                </button>
+
+                                {/* Bulk Shortener Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBulkOpen(true)}
+                                    className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-zinc-500 hover:text-zinc-800 transition-colors dark:text-zinc-400 dark:hover:text-zinc-200"
+                                >
+                                    <Layers className="h-3 w-3 text-zinc-400 group-hover:scale-110 group-hover:text-indigo-600 dark:text-zinc-500 dark:group-hover:text-indigo-400 transition-transform" />
+                                    <span>Bulk Mode</span>
+                                    <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+                                        50 max
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* REFINED ADVANCED DRAWER (Completely hidden until toggled) */}
@@ -548,14 +569,25 @@ export default function PublicShortener() {
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadQR}
-                                    className="mt-3 sm:mt-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-200/80 px-3.5 py-2 text-xs font-medium text-zinc-900 transition-colors hover:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                    <span>Download PNG</span>
-                                </button>
+                                <div className="mt-3 sm:mt-0 flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenStudio(result.shortUrl)}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3.5 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                                    >
+                                        <QrCode className="h-3.5 w-3.5" />
+                                        <span>Customize in Studio</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadQR}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-200/80 px-3.5 py-2 text-xs font-medium text-zinc-900 transition-colors hover:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                                    >
+                                        <Download className="h-3.5 w-3.5" />
+                                        <span>Quick PNG</span>
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -566,6 +598,13 @@ export default function PublicShortener() {
             <BulkShortenerModal
                 isOpen={isBulkOpen}
                 onClose={() => setIsBulkOpen(false)}
+            />
+
+            {/* Public QR Code Studio Modal */}
+            <QrStudioModal
+                isOpen={isStudioOpen}
+                onClose={() => setIsStudioOpen(false)}
+                url={studioUrl}
             />
         </div>
     );

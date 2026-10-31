@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal } from "lucide-react";
+import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode } from "lucide-react";
 import PublicShortener from "@/components/public/PublicShortener";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 
@@ -36,6 +36,15 @@ export default function LandingPage() {
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
               <span>Edge Network: Online</span>
             </div>
+
+            {/* QR Studio Link */}
+            <Link
+              href="/qr"
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 backdrop-blur-md transition-all hover:border-zinc-300 hover:bg-zinc-200/60 hover:text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              <QrCode className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>QR Studio</span>
+            </Link>
 
             {/* Dark/Light Mode Theme Toggle */}
             <ThemeToggle />
@@ -152,6 +161,10 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-6">
+            <Link href="/qr" className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
+              QR Studio
+            </Link>
+            <span>•</span>
             <Link href="/login" className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
               Admin Portal
             </Link>

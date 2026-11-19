@@ -38,6 +38,7 @@ import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 import QrStudioModal from "@/components/qr/QrStudio";
 import LocalVaultDrawer from "@/components/LocalVaultDrawer";
 import UtmBuilderAccordion from "@/components/UtmBuilderAccordion";
+import ShareResultActions from "@/components/ShareResultActions";
 import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { parseUtmUrl } from "@/lib/utm-builder";
 import { POPULAR_LOCALES } from "@/lib/locale-router";
@@ -1245,6 +1246,13 @@ export default function PublicShortener() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Social Share Matrix & Embed Copy Snippets */}
+                        <ShareResultActions
+                            shortUrl={result.shortUrl}
+                            title={result.alias}
+                            originalUrl={result.originalUrl}
+                        />
                     </div>
                 </div>
             )}

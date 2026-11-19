@@ -9,6 +9,7 @@ interface LinkExpiredViewProps {
     domain?: string;
     isExpired?: boolean;
     isLimitReached?: boolean;
+    isBurned?: boolean;
     expirationDate?: Date | null;
     maxClicks?: number | null;
     totalClicks?: number;
@@ -19,6 +20,7 @@ export default function LinkExpiredView({
     domain = "to.mono.bro.bd",
     isExpired = false,
     isLimitReached = false,
+    isBurned = false,
     expirationDate = null,
     maxClicks = null,
     totalClicks = 0,
@@ -26,7 +28,7 @@ export default function LinkExpiredView({
     const cleanDomain = domain.replace(/^https?:\/\//, "");
 
     // Determine primary icon and theme accent
-    const isBoth = isExpired && isLimitReached;
+    const isBoth = isExpired && isLimitReached && !isBurned;
 
     return (
         <div className="relative flex min-h-screen flex-col items-center justify-between bg-white text-zinc-900 selection:bg-amber-500/20 selection:text-amber-900 dark:bg-zinc-950 dark:text-zinc-100 dark:selection:bg-amber-500/30 dark:selection:text-white transition-colors duration-200">
@@ -71,8 +73,14 @@ export default function LinkExpiredView({
                     {/* Card Container */}
                     <div className="relative overflow-hidden rounded-3xl border border-zinc-200/90 bg-white/95 p-7 sm:p-10 text-center shadow-[0_20px_50px_-20px_rgba(0,0,0,0.08)] dark:border-zinc-800/80 dark:bg-zinc-950/85 dark:shadow-2xl backdrop-blur-2xl">
                         {/* Emblem Icon */}
-                        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-50 border border-amber-200/60 text-amber-600 shadow-xs dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
-                            {isBoth ? (
+                        <div className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl shadow-xs transition-colors ${
+                            isBurned
+                                ? "bg-rose-50 border border-rose-200/60 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
+                                : "bg-amber-50 border border-amber-200/60 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
+                        }`}>
+                            {isBurned ? (
+                                <Flame className="h-10 w-10 text-rose-500 animate-pulse" />
+                            ) : isBoth ? (
                                 <ShieldAlert className="h-10 w-10" />
                             ) : isLimitReached ? (
                                 <Flame className="h-10 w-10 text-orange-500" />
@@ -81,9 +89,9 @@ export default function LinkExpiredView({
                             )}
                         </div>
 
-                        {/* Title Requirement: "This link has expired or reached its click limit" */}
+                        {/* Title Requirement */}
                         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight">
-                            This link has expired or reached its click limit
+                            {isBurned ? "Self-Destructed One-Time Link" : "This link has expired or reached its click limit"}
                         </h1>
 
                         {/* Moniker Badge */}
@@ -94,7 +102,9 @@ export default function LinkExpiredView({
 
                         {/* Subtitle / Context */}
                         <p className="mt-4 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto">
-                            The creator of this short link configured automated expiration policies. Access to the destination has been securely deactivated.
+                            {isBurned
+                                ? "This single-use link was configured with Burn-After-Reading. It has automatically self-destructed following its first visit."
+                                : "The creator of this short link configured automated expiration policies. Access to the destination has been securely deactivated."}
                         </p>
 
                         {/* Status Breakdown Badges */}

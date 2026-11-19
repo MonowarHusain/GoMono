@@ -13,6 +13,7 @@ export interface CreateLinkInput {
     password?: string | null;
     expiresAt?: string | Date | null;
     maxClicks?: number | string | null;
+    burnAfterRead?: boolean | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
     ogTitle?: string | null;
@@ -51,6 +52,9 @@ export interface Link {
     password?: string | null;
     expiresAt?: string | null;
     maxClicks?: number | null;
+    burnAfterRead?: boolean | null;
+    isBurned?: boolean | null;
+    burnedAt?: string | null;
     tags?: string[];
     isPublic?: boolean;
     createdBy?: string;

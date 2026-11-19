@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, burnAfterRead, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -163,7 +163,9 @@ export async function POST(req: Request) {
         }
 
         let finalMaxClicks: number | null = null;
-        if (maxClicks !== undefined && maxClicks !== null && maxClicks !== "") {
+        if (burnAfterRead) {
+            finalMaxClicks = 1;
+        } else if (maxClicks !== undefined && maxClicks !== null && maxClicks !== "") {
             const parsedClicks = typeof maxClicks === "number" ? maxClicks : parseInt(String(maxClicks), 10);
             if (!isNaN(parsedClicks) && parsedClicks > 0) {
                 finalMaxClicks = parsedClicks;
@@ -223,6 +225,8 @@ export async function POST(req: Request) {
             password: cleanPassword,
             passwordHash: cleanPasswordHash,
             maxClicks: finalMaxClicks,
+            burnAfterRead: Boolean(burnAfterRead),
+            isBurned: false,
             expiresAt: finalExpiresAt,
             tags: tagsArray,
             createdBy,

@@ -77,7 +77,8 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
 
     const totalClicks = typeof data.totalClicks === "number" ? data.totalClicks : 0;
     const maxClicks = typeof data.maxClicks === "number" ? data.maxClicks : (data.maxClicks ? parseInt(String(data.maxClicks), 10) : null);
-    const isLimitReached = Boolean(maxClicks && maxClicks > 0 && totalClicks >= maxClicks);
+    const isBurned = Boolean(data.isBurned || (data.burnAfterRead && totalClicks >= 1));
+    const isLimitReached = Boolean(isBurned || (maxClicks && maxClicks > 0 && totalClicks >= maxClicks));
 
     // 5. If inspection mode was requested (e.g., /alias+), render safety inspector immediately without tracking click
     if (isInspectionMode) {
@@ -98,13 +99,14 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     }
 
     // If expired or limit is reached, render clean, professional error view
-    if (isExpired || isLimitReached) {
+    if (isExpired || isLimitReached || isBurned) {
         return (
             <LinkExpiredView
                 alias={alias}
                 domain={data.domain || "to.mono.bro.bd"}
                 isExpired={isExpired}
                 isLimitReached={isLimitReached}
+                isBurned={isBurned}
                 expirationDate={expirationDate}
                 maxClicks={maxClicks}
                 totalClicks={totalClicks}
@@ -209,6 +211,8 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
             const browserKey = sanitizeFieldKey(parsedUa.browser);
             const osKey = sanitizeFieldKey(parsedUa.os);
 
+            const isBurnAfterRead = Boolean(data.burnAfterRead);
+
             await Promise.all([
                 // 8a. Atomic aggregated counters on link doc for O(1) instantaneous analytics reads
                 linkRef.update({
@@ -217,6 +221,7 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
                     [`browsers.${browserKey}`]: FieldValue.increment(1),
                     [`os.${osKey}`]: FieldValue.increment(1),
                     lastClickedAt: FieldValue.serverTimestamp(),
+                    ...(isBurnAfterRead ? { isBurned: true, burnedAt: FieldValue.serverTimestamp() } : {}),
                 }),
                 // 8b. Fine-grained historical click audit log in subcollection
                 linkRef.collection("clicks").add({

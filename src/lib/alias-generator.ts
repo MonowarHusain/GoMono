@@ -60,7 +60,7 @@ export function generateMemorableAlias(options: MemorableAliasOptions = {}): str
     const parts: string[] = [];
 
     if (doubleAdjective) {
-        let adj1 = pickRandom(ADJECTIVES);
+        const adj1 = pickRandom(ADJECTIVES);
         let adj2 = pickRandom(ADJECTIVES);
         while (adj2 === adj1) {
             adj2 = pickRandom(ADJECTIVES);

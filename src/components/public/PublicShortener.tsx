@@ -32,6 +32,7 @@ import {
     Plus,
     Trash2,
     ShieldCheck,
+    Dices,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -45,6 +46,7 @@ import { parseUtmUrl } from "@/lib/utm-builder";
 import { POPULAR_LOCALES } from "@/lib/locale-router";
 import { notifyLinkCreated } from "@/lib/events";
 import { cleanTrackingParams } from "@/lib/url-cleaner";
+import { generateMemorableAlias } from "@/lib/alias-generator";
 
 interface ShortenResult {
     shortUrl: string;
@@ -829,8 +831,20 @@ export default function PublicShortener() {
                                             value={customAlias}
                                             onChange={(e) => setCustomAlias(e.target.value)}
                                             placeholder="Custom alias (e.g. launch)"
-                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-purple-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-purple-500/50"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-8 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-purple-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-purple-500/50"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const alias = generateMemorableAlias();
+                                                setCustomAlias(alias);
+                                                toast.success(`Generated memorable alias: ${alias}`);
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-zinc-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/50 dark:hover:text-purple-400 transition"
+                                            title="Generate memorable alias (Magic Dice)"
+                                        >
+                                            <Dices className="h-3.5 w-3.5" />
+                                        </button>
                                     </div>
 
                                     {/* Device Smart Routing: iOS Target */}

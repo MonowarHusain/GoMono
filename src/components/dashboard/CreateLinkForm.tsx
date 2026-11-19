@@ -5,7 +5,7 @@ import {
     Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
     Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode,
-    ShieldCheck
+    ShieldCheck, Dices
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
@@ -13,6 +13,7 @@ import { type Link } from "@/components/dashboard/LinksTable";
 import { notifyLinkCreated } from "@/lib/events";
 import QrStudioModal from "@/components/qr/QrStudio";
 import { cleanTrackingParams } from "@/lib/url-cleaner";
+import { generateMemorableAlias } from "@/lib/alias-generator";
 
 // Accept onLinkCreated with optional newly created Link item
 export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (newLink?: Link) => void }) {
@@ -280,11 +281,27 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                             <Sparkles className="h-5 w-5 text-neutral-400" />
                         </div>
                         <input
+                            id="customAliasInput"
                             name="customAlias"
                             type="text"
                             placeholder="Custom Alias (optional)"
-                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-purple-500/50"
+                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-10 text-sm outline-none transition-all focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-purple-500/50"
                         />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const input = document.getElementById("customAliasInput") as HTMLInputElement;
+                                if (input) {
+                                    const alias = generateMemorableAlias();
+                                    input.value = alias;
+                                    toast.success(`Generated alias: ${alias}`);
+                                }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-neutral-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 dark:hover:text-purple-300 transition"
+                            title="Generate memorable alias (Magic Dice)"
+                        >
+                            <Dices className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
 

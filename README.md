@@ -62,6 +62,20 @@
 - **Flicker-Free Dark/Light Mode**: Smooth, persistent theme switching using Tailwind v4 CSS variables and system preference detection.
 - **Live Sync & Optimistic UI**: Cross-tab synchronization via `BroadcastChannel` and scoped Firestore snapshots that update link tables instantly without reloading.
 
+### 7. 🗄️ Standalone CSV Studio & Data Engine (`/csv-studio`)
+- **100% Client-Side Processing**: Zero server-side file uploads, zero database bloat, and total privacy for sensitive datasets.
+- **High-Performance Data Grid**: View, edit, sort, and paginate thousands of records with zero UI latency.
+- **Data Hygiene & Transformation**: One-click deduplication, empty row stripping, URL protocol normalization, and regex find-and-replace.
+- **Multi-Format Export**: Instant conversions between CSV, JSON, and formatted TXT data formats.
+
+### 8. ⚡ Zero-Cost Power-User Suite
+- **Bitly-Style `+` Link Safety Inspector (`/[alias]+`)**: Append `+` (or `%2B`) to any short link (e.g. `to.mono.bro.bd/launch+`) to preview destination safety, TLS/HTTPS security status, creation date, and total human clicks—without triggering redirects or skewing telemetry.
+- **Instant Address-Bar Prefix Shortening**: Prepend GoMono's domain before any URL in your browser's address bar (e.g. `to.mono.bro.bd/https://github.com/trending`) to instantly generate or retrieve a short link with auto-copy and vector SVG QR code.
+- **1-Click Draggable Bookmarklet**: Drag the "⚡ Shorten with GoMono" bookmarklet button directly to your browser's bookmarks bar to shorten any active tab in a single click.
+- **Client-Side Local Link Vault**: Anonymous visitors get instant access to their last 25 shortened links saved in browser `localStorage` (`gomono_local_vault`) with cross-tab live synchronization and $0 Firestore read cost.
+- **Zero-Dependency Bot & Crawler Shield**: Intelligent user-agent detection intercepts search crawlers (Googlebot, Bingbot, Baiduspider), social scrapers, and automated scripts (curl, wget, python-requests) to bypass analytics logging—preserving free-tier Firestore write quotas.
+- **Dynamic Social OpenGraph (OG) Cloaking**: Custom social cards (`ogTitle`, `ogDescription`, `ogImage`) served specifically to social preview bots (WhatsApp, Discord, Twitterbot, Telegram, Facebook) with automatic `<meta http-equiv="refresh">` client fallback.
+
 ---
 
 ## 🏛️ Architecture & Design Philosophy
@@ -217,9 +231,12 @@ Authorization: Bearer <optional-firebase-token>
 {
   "originalUrl": "https://example.com/long-page-url",
   "customAlias": "spring-sale",
-  "domain": "go.mono.bro.bd",
+  "domain": "to.mono.bro.bd",
   "iosUrl": "https://apps.apple.com/app/id123456789",
   "androidUrl": "https://play.google.com/store/apps/details?id=com.example",
+  "ogTitle": "Exclusive Spring Sale",
+  "ogDescription": "Get up to 50% off all developer tools",
+  "ogImage": "https://example.com/og-banner.png",
   "password": "secret-password",
   "expiresAt": "2026-12-31T23:59:59.000Z",
   "maxClicks": 100,

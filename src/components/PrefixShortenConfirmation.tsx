@@ -6,10 +6,7 @@ import {
     Check,
     Copy,
     ExternalLink,
-    QrCode,
-    Sparkles,
     ArrowRight,
-    ShieldCheck,
     Download,
     Search,
     Zap,
@@ -30,7 +27,6 @@ export default function PrefixShortenConfirmation({
     originalUrl,
 }: PrefixShortenConfirmationProps) {
     const [copied, setCopied] = useState(false);
-    const [showQrModal, setShowQrModal] = useState(false);
     const { saveLink } = useLocalLinkVault();
 
     // Auto-copy and save to device vault on mount

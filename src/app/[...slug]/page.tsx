@@ -107,7 +107,7 @@ export default async function CatchAllPrefixShortenerPage({ params }: CatchAllPr
         }
 
         if (!isUnique) {
-            alias = `p${Date.now().toString(36).slice(-5)}`;
+            alias = `p${crypto.randomBytes(4).toString("hex")}`;
         }
 
         // Save new public link to Firestore

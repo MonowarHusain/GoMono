@@ -14,7 +14,7 @@ import {
     Sparkles,
     ShieldCheck,
 } from "lucide-react";
-import { useLocalLinkVault, type VaultLink } from "@/hooks/useLocalLinkVault";
+import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { toast } from "sonner";
 
 interface LocalVaultDrawerProps {

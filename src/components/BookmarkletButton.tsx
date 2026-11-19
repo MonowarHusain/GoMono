@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, Sparkles, Check, Copy, HelpCircle } from "lucide-react";
+import { Bookmark, Sparkles, Check, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BookmarkletButton() {

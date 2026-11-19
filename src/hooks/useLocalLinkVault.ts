@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useSyncExternalStore, useCallback } from "react";
 
 export interface VaultLink {
     alias: string;
@@ -14,69 +14,61 @@ const STORAGE_KEY = "gomono_local_vault";
 const MAX_VAULT_ITEMS = 25;
 const VAULT_UPDATED_EVENT = "gomono:vault-updated";
 
+function subscribe(callback: () => void) {
+    if (typeof window === "undefined") return () => {};
+
+    const handleStorageEvent = (e: StorageEvent) => {
+        if (e.key === STORAGE_KEY) {
+            callback();
+        }
+    };
+
+    window.addEventListener("storage", handleStorageEvent);
+    window.addEventListener(VAULT_UPDATED_EVENT, callback);
+
+    return () => {
+        window.removeEventListener("storage", handleStorageEvent);
+        window.removeEventListener(VAULT_UPDATED_EVENT, callback);
+    };
+}
+
+let cachedRaw: string | null = null;
+let cachedLinks: VaultLink[] = [];
+
+function getSnapshot(): VaultLink[] {
+    if (typeof window === "undefined") return [];
+
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
+        if (raw !== cachedRaw) {
+            cachedRaw = raw;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                cachedLinks = parsed
+                    .filter((item) => item && typeof item.alias === "string" && typeof item.shortUrl === "string")
+                    .slice(0, MAX_VAULT_ITEMS);
+            } else {
+                cachedLinks = [];
+            }
+        }
+        return cachedLinks;
+    } catch {
+        return [];
+    }
+}
+
+const SERVER_SNAPSHOT: VaultLink[] = [];
+function getServerSnapshot(): VaultLink[] {
+    return SERVER_SNAPSHOT;
+}
+
 /**
  * SSR-safe, zero-cost local browser link vault hook.
  * Persists up to 25 recently shortened links directly in localStorage.
  * Requires ZERO database reads, zero server storage, and works offline.
  */
 export function useLocalLinkVault() {
-    const [links, setLinks] = useState<VaultLink[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    // Read stored links safely from localStorage
-    const loadFromStorage = useCallback(() => {
-        if (typeof window === "undefined") return;
-
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) {
-                setLinks([]);
-                setIsLoaded(true);
-                return;
-            }
-
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                // Ensure array shape conforms to VaultLink
-                const valid = parsed.filter(
-                    (item) => item && typeof item.alias === "string" && typeof item.shortUrl === "string"
-                );
-                setLinks(valid.slice(0, MAX_VAULT_ITEMS));
-            } else {
-                setLinks([]);
-            }
-        } catch (err) {
-            console.warn("Failed to read from local link vault:", err);
-            setLinks([]);
-        } finally {
-            setIsLoaded(true);
-        }
-    }, []);
-
-    // Initial mount hydration
-    useEffect(() => {
-        loadFromStorage();
-
-        // Listen for storage changes across tabs
-        const handleStorageEvent = (e: StorageEvent) => {
-            if (e.key === STORAGE_KEY) {
-                loadFromStorage();
-            }
-        };
-
-        // Listen for custom event within same window/tab
-        const handleCustomEvent = () => {
-            loadFromStorage();
-        };
-
-        window.addEventListener("storage", handleStorageEvent);
-        window.addEventListener(VAULT_UPDATED_EVENT, handleCustomEvent);
-
-        return () => {
-            window.removeEventListener("storage", handleStorageEvent);
-            window.removeEventListener(VAULT_UPDATED_EVENT, handleCustomEvent);
-        };
-    }, [loadFromStorage]);
+    const links = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
     // Save items to localStorage and notify listeners
     const commitToStorage = useCallback((items: VaultLink[]) => {
@@ -84,8 +76,7 @@ export function useLocalLinkVault() {
         try {
             const trimmed = items.slice(0, MAX_VAULT_ITEMS);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-            setLinks(trimmed);
-            // Dispatch in-window event for instant reactivity
+            cachedRaw = null; // Invalidate cache so getSnapshot re-reads
             window.dispatchEvent(new CustomEvent(VAULT_UPDATED_EVENT));
         } catch (err) {
             console.warn("Failed to write to local link vault:", err);
@@ -103,13 +94,10 @@ export function useLocalLinkVault() {
                 createdAt: link.createdAt || new Date().toISOString(),
             };
 
-            setLinks((prev) => {
-                // Remove existing item with same alias if present
-                const filtered = prev.filter((item) => item.alias !== newItem.alias);
-                const nextList = [newItem, ...filtered].slice(0, MAX_VAULT_ITEMS);
-                commitToStorage(nextList);
-                return nextList;
-            });
+            const current = getSnapshot();
+            const filtered = current.filter((item) => item.alias !== newItem.alias);
+            const nextList = [newItem, ...filtered].slice(0, MAX_VAULT_ITEMS);
+            commitToStorage(nextList);
         },
         [commitToStorage]
     );
@@ -117,11 +105,9 @@ export function useLocalLinkVault() {
     // Remove a single link by alias
     const removeLink = useCallback(
         (alias: string) => {
-            setLinks((prev) => {
-                const nextList = prev.filter((item) => item.alias !== alias);
-                commitToStorage(nextList);
-                return nextList;
-            });
+            const current = getSnapshot();
+            const nextList = current.filter((item) => item.alias !== alias);
+            commitToStorage(nextList);
         },
         [commitToStorage]
     );
@@ -131,7 +117,7 @@ export function useLocalLinkVault() {
         if (typeof window === "undefined") return;
         try {
             localStorage.removeItem(STORAGE_KEY);
-            setLinks([]);
+            cachedRaw = null;
             window.dispatchEvent(new CustomEvent(VAULT_UPDATED_EVENT));
         } catch (err) {
             console.warn("Failed to clear local vault:", err);
@@ -140,7 +126,7 @@ export function useLocalLinkVault() {
 
     return {
         links,
-        isLoaded,
+        isLoaded: true,
         saveLink,
         removeLink,
         clearVault,

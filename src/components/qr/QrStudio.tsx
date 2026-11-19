@@ -18,8 +18,15 @@ import {
     Palette,
     Eye,
     Type,
+    ScanLine,
+    UploadCloud,
+    ClipboardPaste,
+    ExternalLink,
+    Loader2,
+    Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { decodeQrFromFile } from "@/lib/qr-decoder";
 
 // ==========================================
 // TYPES & SCHEMAS
@@ -265,7 +272,74 @@ export function QrStudioView({ initialUrl = "https://go.mono.bro.bd" }: QrStudio
     const [downloading, setDownloading] = useState<"png" | "svg" | null>(null);
     const [copiedPayload, setCopiedPayload] = useState(false);
     const [copiedSvg, setCopiedSvg] = useState(false);
-    const [activeTab, setActiveTab] = useState<"content" | "style" | "branding" | "frame">("content");
+    const [activeTab, setActiveTab] = useState<"content" | "style" | "branding" | "frame" | "decode">("content");
+
+    // 5. QR Image Decoder States
+    const [decodedResult, setDecodedResult] = useState<string | null>(null);
+    const [decodeError, setDecodeError] = useState<string | null>(null);
+    const [isDecoding, setIsDecoding] = useState(false);
+    const [isDraggingQr, setIsDraggingQr] = useState(false);
+    const [copiedDecoded, setCopiedDecoded] = useState(false);
+
+    const handleDecodeFile = async (file: File) => {
+        setIsDecoding(true);
+        setDecodeError(null);
+        setDecodedResult(null);
+        try {
+            const res = await decodeQrFromFile(file);
+            if (res.success && res.data) {
+                setDecodedResult(res.data);
+                toast.success("QR code decoded successfully!");
+            } else {
+                setDecodeError(res.error || "Could not detect a QR code in this image.");
+                toast.error("QR detection failed");
+            }
+        } catch {
+            setDecodeError("Failed to decode QR code from the provided image.");
+            toast.error("Failed to read image");
+        } finally {
+            setIsDecoding(false);
+        }
+    };
+
+    const handlePasteClipboardImage = async () => {
+        try {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+                const imageType = item.types.find((t) => t.startsWith("image/"));
+                if (imageType) {
+                    const blob = await item.getType(imageType);
+                    const file = new File([blob], "clipboard-qr.png", { type: imageType });
+                    await handleDecodeFile(file);
+                    return;
+                }
+            }
+            toast.info("No image found in clipboard. Copy a QR image first!");
+        } catch (err) {
+            console.warn("Clipboard image read error:", err);
+            toast.error("Could not read image from clipboard. Please use file picker or check permissions.");
+        }
+    };
+
+    const handleCopyDecodedText = async () => {
+        if (!decodedResult) return;
+        try {
+            await navigator.clipboard.writeText(decodedResult);
+            setCopiedDecoded(true);
+            toast.success("Copied decoded text to clipboard!");
+            setTimeout(() => setCopiedDecoded(false), 2000);
+        } catch {
+            toast.error("Failed to copy decoded text");
+        }
+    };
+
+    const handleLoadDecodedIntoStudio = () => {
+        if (!decodedResult) return;
+        setUrlInput(decodedResult);
+        setContentType("url");
+        setActiveTab("content");
+        toast.success("Loaded decoded URL into QR Code Studio editor!");
+    };
 
     // Calculate computed encoded QR raw text
     const encodedPayload = useMemo(() => {
@@ -911,6 +985,7 @@ export function QrStudioView({ initialUrl = "https://go.mono.bro.bd" }: QrStudio
                             { id: "style", label: "Patterns", icon: Eye },
                             { id: "branding", label: "Colors & Logo", icon: Palette },
                             { id: "frame", label: "Frame & CTA", icon: Type },
+                            { id: "decode", label: "Decode QR", icon: ScanLine },
                         ] as const
                     ).map((tab) => {
                         const Icon = tab.icon;
@@ -1443,6 +1518,161 @@ export function QrStudioView({ initialUrl = "https://go.mono.bro.bd" }: QrStudio
                                                 {sugg}
                                             </button>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* TAB 5: SCAN / DECODE QR IMAGE */}
+                {activeTab === "decode" && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 dark:border-zinc-800/80 dark:bg-zinc-900/50 shadow-xs space-y-4">
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                                    <ScanLine className="h-4 w-4 text-indigo-500" />
+                                    <span>Client-Side QR Code Decoder</span>
+                                </h3>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                    100% private in-browser decoding. Drop a QR image or paste from clipboard (zero server uploads).
+                                </p>
+                            </div>
+
+                            {/* Dropzone */}
+                            <div
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setIsDraggingQr(true);
+                                }}
+                                onDragLeave={() => setIsDraggingQr(false)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    setIsDraggingQr(false);
+                                    const file = e.dataTransfer.files?.[0];
+                                    if (file) handleDecodeFile(file);
+                                }}
+                                className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition ${
+                                    isDraggingQr
+                                        ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
+                                        : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/30"
+                                }`}
+                            >
+                                <input
+                                    type="file"
+                                    id="qrFileInput"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleDecodeFile(file);
+                                    }}
+                                />
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 mb-3">
+                                    {isDecoding ? (
+                                        <Loader2 className="h-6 w-6 animate-spin" />
+                                    ) : (
+                                        <UploadCloud className="h-6 w-6" />
+                                    )}
+                                </div>
+
+                                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                                    {isDecoding ? "Inspecting & Decoding QR Code..." : "Drop QR code image here"}
+                                </p>
+                                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+                                    Supports PNG, JPG, WebP, SVG screenshots
+                                </p>
+
+                                <div className="mt-4 flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => document.getElementById("qrFileInput")?.click()}
+                                        disabled={isDecoding}
+                                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 transition"
+                                    >
+                                        <UploadCloud className="h-3.5 w-3.5" />
+                                        <span>Browse File</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handlePasteClipboardImage}
+                                        disabled={isDecoding}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
+                                    >
+                                        <ClipboardPaste className="h-3.5 w-3.5 text-indigo-500" />
+                                        <span>Paste Clipboard (Ctrl+V)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Decoding Error Notice */}
+                            {decodeError && (
+                                <div className="rounded-2xl border border-red-200 bg-red-50/70 p-3.5 text-xs text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400">
+                                    <p className="font-semibold">Unable to decode QR</p>
+                                    <p className="text-[11px] mt-0.5">{decodeError}</p>
+                                </div>
+                            )}
+
+                            {/* Decoded Result Box */}
+                            {decodedResult && (
+                                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-900/30 dark:bg-emerald-950/20 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                                            <Sparkles className="h-4 w-4 text-emerald-500" />
+                                            <span>Decoded QR Payload</span>
+                                        </div>
+                                        <span className="text-[10px] rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                                            Verified
+                                        </span>
+                                    </div>
+
+                                    <div className="relative rounded-xl border border-emerald-200/70 bg-white p-3 font-mono text-xs text-zinc-900 dark:border-emerald-900/40 dark:bg-zinc-900 dark:text-zinc-100 break-all select-all">
+                                        {decodedResult}
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyDecodedText}
+                                            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
+                                        >
+                                            {copiedDecoded ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                                            <span>Copy Payload</span>
+                                        </button>
+
+                                        {/* If it's a URL, offer Shorten and Open */}
+                                        {/^(https?:\/\/)/i.test(decodedResult) && (
+                                            <>
+                                                <a
+                                                    href={`/?url=${encodeURIComponent(decodedResult)}`}
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-500 transition shadow-xs"
+                                                >
+                                                    <Sparkles className="h-3.5 w-3.5" />
+                                                    <span>Shorten Decoded URL</span>
+                                                </a>
+
+                                                <a
+                                                    href={decodedResult}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
+                                                >
+                                                    <ExternalLink className="h-3.5 w-3.5" />
+                                                    <span>Open Link</span>
+                                                </a>
+                                            </>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={handleLoadDecodedIntoStudio}
+                                            className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/80 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 dark:border-purple-800/50 dark:bg-purple-950/30 dark:text-purple-300 transition"
+                                        >
+                                            <QrCode className="h-3.5 w-3.5" />
+                                            <span>Customize in Studio</span>
+                                        </button>
                                     </div>
                                 </div>
                             )}

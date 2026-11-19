@@ -7,6 +7,7 @@ import { detectTrafficType } from "@/lib/bot-detector";
 import { resolveSplitDestination } from "@/lib/ab-router";
 import { resolveLocaleDestination } from "@/lib/locale-router";
 import { evaluateLinkSchedule } from "@/lib/schedule-evaluator";
+import { resolveDeepLink } from "@/lib/deep-link-mapper";
 import { hashPasswordSync } from "@/lib/link-password";
 import PasswordGateCard from "@/components/PasswordGateCard";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
@@ -198,6 +199,19 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         // Weighted A/B split testing destination resolution
         const splitResult = resolveSplitDestination(data.abVariants, data.originalUrl);
         destinationUrl = splitResult.selectedUrl;
+    }
+
+    // 7b. Native Mobile App Deep-Linking Scheme Resolution
+    if (data.deepLink && (isIos || isAndroid)) {
+        const deepResult = resolveDeepLink(destinationUrl);
+        if (deepResult.isSupported) {
+            const nativeUri = isIos
+                ? (deepResult.iosUri || deepResult.deepLinkUri)
+                : (deepResult.androidUri || deepResult.deepLinkUri);
+            if (nativeUri) {
+                destinationUrl = nativeUri;
+            }
+        }
     }
 
     // 8. Atomic Click Analytics Recording & Metadata Event Logging (Human Visitors Only)

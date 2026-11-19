@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, burnAfterRead, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, burnAfterRead, deepLink, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -226,6 +226,7 @@ export async function POST(req: Request) {
             passwordHash: cleanPasswordHash,
             maxClicks: finalMaxClicks,
             burnAfterRead: Boolean(burnAfterRead),
+            deepLink: Boolean(deepLink),
             isBurned: false,
             expiresAt: finalExpiresAt,
             tags: tagsArray,

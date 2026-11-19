@@ -90,6 +90,7 @@ export default function PublicShortener() {
     const [scheduleEndHour, setScheduleEndHour] = useState("");
     const [iosUrl, setIosUrl] = useState("");
     const [androidUrl, setAndroidUrl] = useState("");
+    const [deepLink, setDeepLink] = useState(false);
     const [variantBUrl, setVariantBUrl] = useState("");
     const [splitWeight, setSplitWeight] = useState(50);
     const [localeRules, setLocaleRules] = useState<Record<string, string>>({});
@@ -212,6 +213,7 @@ export default function PublicShortener() {
                 originalUrl: finalUrl,
                 iosUrl: iosUrl.trim() || undefined,
                 androidUrl: androidUrl.trim() || undefined,
+                deepLink: deepLink || undefined,
                 customAlias: customAlias.trim() || undefined,
                 domain: selectedDomain,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
@@ -359,7 +361,7 @@ export default function PublicShortener() {
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || burnAfterRead || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
-    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl || Object.keys(localeRules).length > 0);
+    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || deepLink || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
 
@@ -911,6 +913,39 @@ export default function PublicShortener() {
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-emerald-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-emerald-500/50"
                                         />
                                     </div>
+                                </div>
+
+                                {/* Deep-Linking Toggle Switch */}
+                                <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-200/60 bg-blue-50/40 p-2.5 dark:border-blue-900/30 dark:bg-blue-950/20">
+                                    <div className="flex items-center gap-2">
+                                        <Smartphone className={`h-4 w-4 shrink-0 ${deepLink ? "text-blue-500" : "text-zinc-400"}`} />
+                                        <div>
+                                            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                                                <span>Open in Native App (Deep-Link)</span>
+                                                <span className="rounded bg-blue-100 px-1.5 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 uppercase">
+                                                    Auto-Scheme
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                                Directs mobile visitors into YouTube, Twitter/X, Instagram, Spotify, GitHub, or LinkedIn native apps.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={deepLink}
+                                        onClick={() => setDeepLink(!deepLink)}
+                                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                            deepLink ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"
+                                        }`}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                                deepLink ? "translate-x-4" : "translate-x-0"
+                                            }`}
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* A/B Split Testing Traffic Section */}

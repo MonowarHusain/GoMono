@@ -14,6 +14,7 @@ export interface CreateLinkInput {
     expiresAt?: string | Date | null;
     maxClicks?: number | string | null;
     burnAfterRead?: boolean | null;
+    deepLink?: boolean | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
     ogTitle?: string | null;
@@ -55,6 +56,7 @@ export interface Link {
     burnAfterRead?: boolean | null;
     isBurned?: boolean | null;
     burnedAt?: string | null;
+    deepLink?: boolean | null;
     tags?: string[];
     isPublic?: boolean;
     createdBy?: string;

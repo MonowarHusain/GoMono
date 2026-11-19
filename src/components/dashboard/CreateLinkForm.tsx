@@ -29,6 +29,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
     const [showStudio, setShowStudio] = useState(false);
     const [autoCleanTrackers, setAutoCleanTrackers] = useState(true);
     const [burnAfterRead, setBurnAfterRead] = useState(false);
+    const [deepLink, setDeepLink] = useState(false);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -100,6 +101,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 tags: rawTags,
                 maxClicks: rawMaxClicks,
                 burnAfterRead: burnAfterRead || undefined,
+                deepLink: deepLink || undefined,
                 expiresAt: formData.get("expiresAt"),
                 password: rawPassword,
                 creatorType: "admin" as const,
@@ -425,26 +427,61 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                     </button>
 
                     {isRoutingOpen && (
-                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-3 dark:border-neutral-800">
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Tag className="h-4 w-4 text-neutral-400" />
+                        <div className="border-t border-neutral-200 p-4 dark:border-neutral-800 space-y-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                        <Tag className="h-4 w-4 text-neutral-400" />
+                                    </div>
+                                    <input name="tags" type="text" placeholder="Tags (e.g. event, personal)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
                                 </div>
-                                <input name="tags" type="text" placeholder="Tags (e.g. event, personal)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
+
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                        <Smartphone className="h-4 w-4 text-blue-400" />
+                                    </div>
+                                    <input name="iosUrl" type="url" placeholder="iOS Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
+                                </div>
+
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                        <Smartphone className="h-4 w-4 text-emerald-400" />
+                                    </div>
+                                    <input name="androidUrl" type="url" placeholder="Android Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-emerald-500/50" />
+                                </div>
                             </div>
 
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Smartphone className="h-4 w-4 text-blue-400" />
+                            {/* Deep Linking Switch */}
+                            <div className="flex items-center justify-between rounded-xl border border-blue-200/60 bg-blue-50/40 p-3 dark:border-blue-900/30 dark:bg-blue-950/20">
+                                <div className="flex items-center gap-2">
+                                    <Smartphone className={`h-4 w-4 ${deepLink ? "text-blue-500" : "text-neutral-400"}`} />
+                                    <div>
+                                        <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                                            <span>Open in Native App (Deep-Linking)</span>
+                                            <span className="rounded bg-blue-100 px-1.5 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 uppercase">
+                                                Auto-Scheme
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                            Automatically launches mobile apps for YouTube, Twitter/X, Instagram, Spotify, GitHub, and LinkedIn.
+                                        </p>
+                                    </div>
                                 </div>
-                                <input name="iosUrl" type="url" placeholder="iOS Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50" />
-                            </div>
-
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                    <Smartphone className="h-4 w-4 text-emerald-400" />
-                                </div>
-                                <input name="androidUrl" type="url" placeholder="Android Destination (optional)" className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-emerald-500/50" />
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={deepLink}
+                                    onClick={() => setDeepLink(!deepLink)}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        deepLink ? "bg-blue-600" : "bg-neutral-300 dark:bg-neutral-700"
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                            deepLink ? "translate-x-4" : "translate-x-0"
+                                        }`}
+                                    />
+                                </button>
                             </div>
                         </div>
                     )}

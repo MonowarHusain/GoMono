@@ -431,6 +431,81 @@ export default function CsvStudio() {
         toast.success("Copied tabular dataset to clipboard (ready to paste in Sheets / Excel)!");
     }, [columns, rows]);
 
+    // Zero-Cost Batch HTTP Link Health Check
+    const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+
+    const handleCheckHealth = useCallback(async () => {
+        // Collect all distinct URLs present in rows
+        const collectedUrls = new Set<string>();
+        for (const r of rows) {
+            for (const val of Object.values(r)) {
+                if (typeof val === "string" && (val.startsWith("http://") || val.startsWith("https://"))) {
+                    collectedUrls.add(val.trim());
+                }
+            }
+        }
+
+        const urlsList = Array.from(collectedUrls).slice(0, 25);
+        if (urlsList.length === 0) {
+            toast.info("No URLs found in the grid to check.");
+            return;
+        }
+
+        setIsCheckingHealth(true);
+        const toastId = toast.loading(`Checking status for ${urlsList.length} URLs...`);
+
+        try {
+            const res = await fetch("/api/health-check", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ urls: urlsList }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Health check failed");
+
+            const resultMap = new Map<string, { status: number; ok: boolean; statusText: string; latencyMs: number }>();
+            let okCount = 0;
+            let brokenCount = 0;
+
+            for (const item of (data.results || [])) {
+                resultMap.set(item.url, item);
+                if (item.ok) okCount++;
+                else brokenCount++;
+            }
+
+            // Append or update "Health_Status" column in grid
+            const statusColId = "health_status_" + Date.now().toString(36);
+            const statusColName = "Health_Status";
+            const updatedCols: CsvColumn[] = [...columns, { id: statusColId, name: statusColName, type: "text" }];
+
+            const updatedRows = rows.map((r) => {
+                let statusVal = "";
+                for (const val of Object.values(r)) {
+                    if (typeof val === "string" && resultMap.has(val.trim())) {
+                        const info = resultMap.get(val.trim())!;
+                        statusVal = info.ok ? `200 OK (${info.latencyMs}ms)` : `${info.status || "ERR"} ${info.statusText}`;
+                        break;
+                    }
+                }
+                return {
+                    ...r,
+                    [statusColId]: statusVal,
+                };
+            });
+
+            setColumns(updatedCols);
+            setRows(updatedRows);
+            recordHistory(updatedCols, updatedRows, `Link health check appended column ${statusColName}`);
+
+            toast.success(`Health check: ${okCount} OK, ${brokenCount} issues. Appended "${statusColName}"!`, { id: toastId });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Health check failed";
+            toast.error(msg, { id: toastId });
+        } finally {
+            setIsCheckingHealth(false);
+        }
+    }, [rows, columns, recordHistory]);
+
     // Global drag-and-drop & paste event listeners
     const [isDragging, setIsDragging] = useState(false);
 
@@ -525,6 +600,8 @@ export default function CsvStudio() {
                 onExportCsv={handleExportCsv}
                 onExportJson={handleExportJson}
                 onCopyTsv={handleCopyTsv}
+                onCheckHealth={handleCheckHealth}
+                isCheckingHealth={isCheckingHealth}
             />
 
             {/* Virtualized Data Grid */}

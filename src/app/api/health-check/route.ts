@@ -30,7 +30,7 @@ async function checkSingleUrl(rawUrl: string): Promise<LinkHealthResult> {
                 },
                 signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
-        } catch (headErr) {
+        } catch {
             // Some servers reject HEAD with 405 or network drop; fallback to Range GET
             response = await fetch(formatted, {
                 method: "GET",

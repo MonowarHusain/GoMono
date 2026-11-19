@@ -8,7 +8,8 @@ import LinkAnalyticsModal from "./LinkAnalyticsModal";
 import { toast } from "sonner";
 import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
-    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone, BarChart2
+    ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone, BarChart2,
+    Activity, Loader2
 } from "lucide-react";
 import { notifyLinkDeleted } from "@/lib/events";
 import type { Link } from "@/types/link";
@@ -36,6 +37,52 @@ export default function LinksTable({
     const [analyticsLink, setAnalyticsLink] = useState<Link | null>(null);
     const [filter, setFilter] = useState<FilterType>("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [healthMap, setHealthMap] = useState<Record<string, { status: number; ok: boolean; statusText: string; latencyMs: number }>>({});
+    const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+
+    const handleCheckHealth = async () => {
+        const urlsToCheck = Array.from(new Set(filteredLinks.map((l) => l.originalUrl))).slice(0, 25);
+        if (urlsToCheck.length === 0) {
+            toast.info("No URLs found to check");
+            return;
+        }
+
+        setIsCheckingHealth(true);
+        const toastId = toast.loading(`Checking health for ${urlsToCheck.length} destination URLs...`);
+
+        try {
+            const res = await fetch("/api/health-check", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ urls: urlsToCheck }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Health check failed");
+
+            const nextMap: Record<string, { status: number; ok: boolean; statusText: string; latencyMs: number }> = {};
+            let okCount = 0;
+            let failCount = 0;
+
+            for (const r of data.results || []) {
+                nextMap[r.url] = {
+                    status: r.status,
+                    ok: r.ok,
+                    statusText: r.statusText,
+                    latencyMs: r.latencyMs,
+                };
+                if (r.ok) okCount++;
+                else failCount++;
+            }
+
+            setHealthMap((prev) => ({ ...prev, ...nextMap }));
+            toast.success(`Health check complete: ${okCount} OK, ${failCount} issues`, { id: toastId });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Health check failed";
+            toast.error(msg, { id: toastId });
+        } finally {
+            setIsCheckingHealth(false);
+        }
+    };
 
     // Helper to evaluate public ownership reliably
     const isPublicLink = (l: Link) =>
@@ -169,7 +216,23 @@ export default function LinksTable({
                     </button>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    {/* Check Link Health Action Button */}
+                    <button
+                        type="button"
+                        onClick={handleCheckHealth}
+                        disabled={isCheckingHealth || filteredLinks.length === 0}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:bg-neutral-900 transition-colors"
+                        title="Run HTTP HEAD health check on current URLs"
+                    >
+                        {isCheckingHealth ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                        ) : (
+                            <Activity className="h-3 w-3 text-indigo-500" />
+                        )}
+                        <span>Check Health</span>
+                    </button>
+
                     {/* Live Sync Status Indicator */}
                     <div
                         className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-[11px] font-medium text-neutral-600 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400"
@@ -322,8 +385,28 @@ export default function LinksTable({
                                             </td>
 
                                             <td className="px-6 py-4">
-                                                <div className="max-w-[200px] md:max-w-[300px] truncate text-slate-700 dark:text-neutral-300">
-                                                    {link.originalUrl}
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <div className="max-w-[200px] md:max-w-[300px] truncate text-slate-700 dark:text-neutral-300">
+                                                        {link.originalUrl}
+                                                    </div>
+                                                    {healthMap[link.originalUrl] && (
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                                                                healthMap[link.originalUrl].ok
+                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                                    : healthMap[link.originalUrl].status >= 300 && healthMap[link.originalUrl].status < 400
+                                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                                            }`}
+                                                            title={`Status: ${healthMap[link.originalUrl].status} ${healthMap[link.originalUrl].statusText} (${healthMap[link.originalUrl].latencyMs}ms)`}
+                                                        >
+                                                            {healthMap[link.originalUrl].ok
+                                                                ? `● 200 OK (${healthMap[link.originalUrl].latencyMs}ms)`
+                                                                : healthMap[link.originalUrl].status >= 300 && healthMap[link.originalUrl].status < 400
+                                                                ? `● ${healthMap[link.originalUrl].status} Redirect`
+                                                                : `● ${healthMap[link.originalUrl].status || "Broken"}`}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {(link.iosUrl || link.androidUrl) && (
                                                     <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">

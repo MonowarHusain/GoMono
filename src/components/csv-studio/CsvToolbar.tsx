@@ -18,6 +18,8 @@ import {
     Copy,
     Check,
     Trash2,
+    Activity,
+    Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SAMPLE_TEMPLATES } from "@/lib/csv-studio/parser";
@@ -43,6 +45,8 @@ interface CsvToolbarProps {
     onExportCsv: (delimiter: string) => void;
     onExportJson: () => void;
     onCopyTsv: () => void;
+    onCheckHealth?: () => void;
+    isCheckingHealth?: boolean;
 }
 
 export default function CsvToolbar({
@@ -66,6 +70,8 @@ export default function CsvToolbar({
     onExportCsv,
     onExportJson,
     onCopyTsv,
+    onCheckHealth,
+    isCheckingHealth = false,
 }: CsvToolbarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const sampleRef = useRef<HTMLDivElement>(null);
@@ -293,6 +299,24 @@ export default function CsvToolbar({
                         <Navigation className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span className="hidden md:inline">UTMs</span>
                     </button>
+
+                    {/* Health Check Button */}
+                    {onCheckHealth && (
+                        <button
+                            type="button"
+                            onClick={onCheckHealth}
+                            disabled={isCheckingHealth}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-1.5 font-semibold text-rose-700 shadow-xs hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300 disabled:opacity-50 transition"
+                            title="Run zero-cost batch HTTP health check on URLs in the grid"
+                        >
+                            {isCheckingHealth ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-rose-600 dark:text-rose-400" />
+                            ) : (
+                                <Activity className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                            )}
+                            <span className="hidden md:inline">Health Check</span>
+                        </button>
+                    )}
 
                     <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
 

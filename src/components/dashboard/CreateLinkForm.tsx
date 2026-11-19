@@ -28,6 +28,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
     const [copied, setCopied] = useState(false);
     const [showStudio, setShowStudio] = useState(false);
     const [autoCleanTrackers, setAutoCleanTrackers] = useState(true);
+    const [burnAfterRead, setBurnAfterRead] = useState(false);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -98,6 +99,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 domain: selectedDomain,
                 tags: rawTags,
                 maxClicks: rawMaxClicks,
+                burnAfterRead: burnAfterRead || undefined,
                 expiresAt: formData.get("expiresAt"),
                 password: rawPassword,
                 creatorType: "admin" as const,
@@ -322,50 +324,85 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                     </button>
 
                     {isSecurityOpen && (
-                        <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 p-4 md:grid-cols-3 dark:border-neutral-800">
-                            {/* Password input */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-                                    <Lock className="h-3.5 w-3.5 text-indigo-500" />
-                                    <span>Passcode Protection</span>
-                                </label>
-                                <input
-                                    name="password"
-                                    type="password"
-                                    placeholder="Enter access password"
-                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
-                                />
-                                <p className="text-[11px] text-neutral-400">Protects link behind password unlock screen</p>
+                        <div className="border-t border-neutral-200 p-4 dark:border-neutral-800 space-y-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                {/* Password input */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                        <Lock className="h-3.5 w-3.5 text-indigo-500" />
+                                        <span>Passcode Protection</span>
+                                    </label>
+                                    <input
+                                        name="password"
+                                        type="password"
+                                        placeholder="Enter access password"
+                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                    />
+                                    <p className="text-[11px] text-neutral-400">Protects link behind password unlock screen</p>
+                                </div>
+
+                                {/* Expiration date */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                        <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                        <span>Expiration Date</span>
+                                    </label>
+                                    <input
+                                        name="expiresAt"
+                                        type="datetime-local"
+                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 [color-scheme:light] dark:[color-scheme:dark]"
+                                    />
+                                    <p className="text-[11px] text-neutral-400">Link expires automatically after this date</p>
+                                </div>
+
+                                {/* Max click limit */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                        <Flame className="h-3.5 w-3.5 text-red-500" />
+                                        <span>Max Click Limit</span>
+                                    </label>
+                                    <input
+                                        name="maxClicks"
+                                        type="number"
+                                        min="1"
+                                        placeholder="e.g. 100 visits"
+                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                    />
+                                    <p className="text-[11px] text-neutral-400">Deactivates after reaching max clicks</p>
+                                </div>
                             </div>
 
-                            {/* Expiration date */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                    <span>Expiration Date</span>
-                                </label>
-                                <input
-                                    name="expiresAt"
-                                    type="datetime-local"
-                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 [color-scheme:light] dark:[color-scheme:dark]"
-                                />
-                                <p className="text-[11px] text-neutral-400">Link expires automatically after this date</p>
-                            </div>
-
-                            {/* Max click limit */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-                                    <Flame className="h-3.5 w-3.5 text-red-500" />
-                                    <span>Max Click Limit</span>
-                                </label>
-                                <input
-                                    name="maxClicks"
-                                    type="number"
-                                    min="1"
-                                    placeholder="e.g. 100 visits"
-                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
-                                />
-                                <p className="text-[11px] text-neutral-400">Deactivates after reaching max clicks</p>
+                            {/* Burn-After-Reading Switch */}
+                            <div className="flex items-center justify-between rounded-xl border border-rose-200/60 bg-rose-50/40 p-3 dark:border-rose-900/30 dark:bg-rose-950/20">
+                                <div className="flex items-center gap-2">
+                                    <Flame className={`h-4 w-4 ${burnAfterRead ? "text-rose-500 animate-pulse" : "text-neutral-400"}`} />
+                                    <div>
+                                        <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                                            <span>Burn After 1st Click</span>
+                                            <span className="rounded bg-rose-100 px-1.5 py-0.2 text-[9px] font-bold text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 uppercase">
+                                                Self-Destruct
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                            Automatically deactivates and burns destination after the very first visitor.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={burnAfterRead}
+                                    onClick={() => setBurnAfterRead(!burnAfterRead)}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        burnAfterRead ? "bg-rose-500" : "bg-neutral-300 dark:bg-neutral-700"
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                            burnAfterRead ? "translate-x-4" : "translate-x-0"
+                                        }`}
+                                    />
+                                </button>
                             </div>
                         </div>
                     )}

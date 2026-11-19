@@ -8,6 +8,8 @@ export interface VaultLink {
     originalUrl: string;
     createdAt: string;
     domain?: string;
+    burnAfterRead?: boolean;
+    isBurned?: boolean;
 }
 
 const STORAGE_KEY = "gomono_local_vault";

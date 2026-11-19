@@ -81,6 +81,7 @@ export default function PublicShortener() {
     const [customAlias, setCustomAlias] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("to.mono.bro.bd");
     const [maxClicks, setMaxClicks] = useState("");
+    const [burnAfterRead, setBurnAfterRead] = useState(false);
     const [expiresAt, setExpiresAt] = useState("");
     const [password, setPassword] = useState("");
     const [scheduleStartAt, setScheduleStartAt] = useState("");
@@ -214,6 +215,7 @@ export default function PublicShortener() {
                 customAlias: customAlias.trim() || undefined,
                 domain: selectedDomain,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
+                burnAfterRead: burnAfterRead || undefined,
                 expiresAt: expiresAt || undefined,
                 password: password.trim() || undefined,
                 ogTitle: ogTitle.trim() || undefined,
@@ -269,6 +271,7 @@ export default function PublicShortener() {
                 shortUrl: fullShortUrl,
                 originalUrl: originalUrl.trim(),
                 domain: cleanDomain,
+                burnAfterRead: burnAfterRead,
             });
 
             // Broadcast link creation to instantly update open admin dashboard views
@@ -282,6 +285,7 @@ export default function PublicShortener() {
                 createdAt: new Date().toISOString(),
                 isProtected: Boolean(password.trim()),
                 password: password.trim() || null,
+                burnAfterRead: burnAfterRead || null,
                 expiresAt: expiresAt || null,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : null,
                 isPublic: true,
@@ -354,7 +358,7 @@ export default function PublicShortener() {
     };
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
-    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
+    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || burnAfterRead || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
@@ -713,6 +717,39 @@ export default function PublicShortener() {
                                         />
                                         <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">Deactivates after N clicks</span>
                                     </div>
+                                </div>
+
+                                {/* Burn After 1st Click (Self-Destruct) Toggle */}
+                                <div className="mt-3 flex items-center justify-between rounded-xl border border-rose-200/70 bg-rose-50/50 p-2.5 dark:border-rose-900/30 dark:bg-rose-950/20">
+                                    <div className="flex items-center gap-2">
+                                        <Flame className={`h-4 w-4 shrink-0 ${burnAfterRead ? "text-rose-500 animate-pulse" : "text-zinc-400"}`} />
+                                        <div>
+                                            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                                                <span>Burn After 1st Click</span>
+                                                <span className="rounded bg-rose-100 px-1.5 py-0.2 text-[9px] font-bold text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 uppercase">
+                                                    1-Time Link
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                                Automatically self-destructs immediately after its very first visitor.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={burnAfterRead}
+                                        onClick={() => setBurnAfterRead(!burnAfterRead)}
+                                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                            burnAfterRead ? "bg-rose-500" : "bg-zinc-300 dark:bg-zinc-700"
+                                        }`}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                                burnAfterRead ? "translate-x-4" : "translate-x-0"
+                                            }`}
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* Scheduled Time-Window & Operating Hours Subsection */}
@@ -1240,8 +1277,14 @@ export default function PublicShortener() {
                         </div>
 
                         {/* Security & Expiration Badges */}
-                        {(password || expiresAt || maxClicks) && (
+                        {(password || expiresAt || maxClicks || burnAfterRead) && (
                             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                                {burnAfterRead && (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50/80 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/50 dark:text-rose-300">
+                                        <Flame className="h-3 w-3 text-rose-500 animate-pulse" />
+                                        <span>Burn After 1st Click (One-Time)</span>
+                                    </span>
+                                )}
                                 {password && (
                                     <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/80 px-2.5 py-1 text-[11px] font-medium text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:text-indigo-300">
                                         <Lock className="h-3 w-3" />

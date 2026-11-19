@@ -13,6 +13,7 @@ import {
     HardDrive,
     Sparkles,
     ShieldCheck,
+    Flame,
 } from "lucide-react";
 import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { toast } from "sonner";
@@ -179,9 +180,17 @@ export default function LocalVaultDrawer({
                                                 className="group rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 hover:border-zinc-300 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:hover:border-zinc-700 transition"
                                             >
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">
-                                                        /{link.alias}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5 truncate">
+                                                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                                                            /{link.alias}
+                                                        </span>
+                                                        {link.burnAfterRead && (
+                                                            <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 dark:text-rose-400">
+                                                                <Flame className="h-2.5 w-2.5" />
+                                                                <span>1-Time</span>
+                                                            </span>
+                                                        )}
+                                                    </div>
 
                                                     <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
                                                         {formatTimeAgo(link.createdAt)}

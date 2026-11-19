@@ -75,6 +75,8 @@ export default function PublicShortener() {
     const [password, setPassword] = useState("");
     const [iosUrl, setIosUrl] = useState("");
     const [androidUrl, setAndroidUrl] = useState("");
+    const [variantBUrl, setVariantBUrl] = useState("");
+    const [splitWeight, setSplitWeight] = useState(50);
     const [ogTitle, setOgTitle] = useState("");
     const [ogDescription, setOgDescription] = useState("");
     const [ogImage, setOgImage] = useState("");
@@ -95,6 +97,8 @@ export default function PublicShortener() {
         setPassword("");
         setIosUrl("");
         setAndroidUrl("");
+        setVariantBUrl("");
+        setSplitWeight(50);
         setOgTitle("");
         setOgDescription("");
         setOgImage("");
@@ -167,6 +171,12 @@ export default function PublicShortener() {
                 ogTitle: ogTitle.trim() || undefined,
                 ogDescription: ogDescription.trim() || undefined,
                 ogImage: ogImage.trim() || undefined,
+                abVariants: variantBUrl.trim()
+                    ? [
+                        { url: originalUrl.trim(), weight: 100 - splitWeight, label: "Variant A (Control)" },
+                        { url: variantBUrl.trim(), weight: splitWeight, label: "Variant B (Challenger)" },
+                    ]
+                    : undefined,
                 creatorType: "public" as const,
                 userId: null,
                 isAdminOnly: false,
@@ -290,7 +300,7 @@ export default function PublicShortener() {
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
-    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl);
+    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
 
@@ -631,6 +641,8 @@ export default function PublicShortener() {
                                                 setCustomAlias("");
                                                 setIosUrl("");
                                                 setAndroidUrl("");
+                                                setVariantBUrl("");
+                                                setSplitWeight(50);
                                             }}
                                             className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                                         >
@@ -680,6 +692,84 @@ export default function PublicShortener() {
                                             placeholder="Android URL (Play Store / deep link)"
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-emerald-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-emerald-500/50"
                                         />
+                                    </div>
+                                </div>
+
+                                {/* A/B Split Testing Traffic Section */}
+                                <div className="mt-3.5 border-t border-zinc-200/60 pt-3 dark:border-zinc-800/60">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <SlidersHorizontal className="h-3 w-3 text-indigo-500" />
+                                            <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                                                A/B Traffic Split Experiment
+                                            </span>
+                                            <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                                                Optional
+                                            </span>
+                                        </div>
+                                        {variantBUrl && (
+                                            <div className="flex items-center gap-1 text-[10px]">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSplitWeight(50)}
+                                                    className={`rounded px-1.5 py-0.5 transition-colors ${splitWeight === 50 ? "bg-indigo-600 text-white font-medium" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"}`}
+                                                >
+                                                    50/50
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSplitWeight(20)}
+                                                    className={`rounded px-1.5 py-0.5 transition-colors ${splitWeight === 20 ? "bg-indigo-600 text-white font-medium" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"}`}
+                                                >
+                                                    80/20
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSplitWeight(10)}
+                                                    className={`rounded px-1.5 py-0.5 transition-colors ${splitWeight === 10 ? "bg-indigo-600 text-white font-medium" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"}`}
+                                                >
+                                                    90/10
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <input
+                                            type="url"
+                                            value={variantBUrl}
+                                            onChange={(e) => setVariantBUrl(e.target.value)}
+                                            placeholder="Variant B URL (e.g. challenger landing page)"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
+                                        />
+
+                                        {variantBUrl.trim() && (
+                                            <div className="rounded-xl border border-zinc-200/60 bg-white/60 p-2.5 dark:border-zinc-800/60 dark:bg-zinc-950/40">
+                                                <div className="flex items-center justify-between text-[11px] mb-1.5 font-medium">
+                                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                                        Variant A (Control): <strong className="text-indigo-600 dark:text-indigo-400">{100 - splitWeight}%</strong>
+                                                    </span>
+                                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                                        Variant B (Challenger): <strong className="text-indigo-600 dark:text-indigo-400">{splitWeight}%</strong>
+                                                    </span>
+                                                </div>
+                                                <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                                                    <div
+                                                        className="h-full bg-indigo-500 transition-all duration-200"
+                                                        style={{ width: `${100 - splitWeight}%` }}
+                                                    />
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min={5}
+                                                    max={95}
+                                                    step={5}
+                                                    value={splitWeight}
+                                                    onChange={(e) => setSplitWeight(Number(e.target.value))}
+                                                    className="w-full mt-2 accent-indigo-600 cursor-pointer"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

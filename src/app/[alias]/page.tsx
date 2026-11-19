@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is di
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 import { detectTrafficType } from "@/lib/bot-detector";
+import { resolveSplitDestination } from "@/lib/ab-router";
 import PasswordGate from "@/components/public/PasswordGate";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
 import LinkInspectorCard, { type LinkInspectorData } from "@/components/LinkInspectorCard";
@@ -144,6 +145,10 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         destinationUrl = data.iosUrl.trim();
     } else if (isAndroid && data.androidUrl && typeof data.androidUrl === "string" && data.androidUrl.trim()) {
         destinationUrl = data.androidUrl.trim();
+    } else if (Array.isArray(data.abVariants) && data.abVariants.length > 0) {
+        // Weighted A/B split testing destination resolution
+        const splitResult = resolveSplitDestination(data.abVariants, data.originalUrl);
+        destinationUrl = splitResult.selectedUrl;
     }
 
     // 8. Atomic Click Analytics Recording & Metadata Event Logging (Human Visitors Only)

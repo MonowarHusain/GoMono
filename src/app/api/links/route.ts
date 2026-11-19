@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -90,6 +90,25 @@ export async function POST(req: Request) {
         if (typeof ogImage === "string" && ogImage.trim()) {
             const rawImg = ogImage.trim();
             cleanOgImage = /^https?:\/\//i.test(rawImg) ? rawImg : `https://${rawImg}`;
+        }
+
+        // Optional A/B Split Testing Variants
+        let cleanAbVariants: Array<{ url: string; weight: number; label?: string }> | null = null;
+        if (Array.isArray(abVariants) && abVariants.length > 0) {
+            cleanAbVariants = abVariants
+                .filter((v) => v && typeof v.url === "string" && v.url.trim().length > 0)
+                .map((v) => {
+                    let u = v.url.trim();
+                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(u)) {
+                        u = `https://${u}`;
+                    }
+                    return {
+                        url: u,
+                        weight: Math.max(1, Math.min(100, Number(v.weight) || 50)),
+                        label: typeof v.label === "string" && v.label.trim() ? v.label.trim().slice(0, 50) : undefined,
+                    };
+                });
+            if (cleanAbVariants.length === 0) cleanAbVariants = null;
         }
 
         // Process Security Options: Expiration Date, Max Clicks, Password
@@ -151,6 +170,7 @@ export async function POST(req: Request) {
             ogTitle: cleanOgTitle,
             ogDescription: cleanOgDescription,
             ogImage: cleanOgImage,
+            abVariants: cleanAbVariants,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),

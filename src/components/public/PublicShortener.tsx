@@ -25,11 +25,14 @@ import {
     Eye,
     EyeOff,
     FileSpreadsheet,
+    History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 import QrStudioModal from "@/components/qr/QrStudio";
+import LocalVaultDrawer from "@/components/LocalVaultDrawer";
+import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { notifyLinkCreated } from "@/lib/events";
 
 interface ShortenResult {
@@ -45,8 +48,10 @@ const DOMAIN_OPTIONS = [
 
 export default function PublicShortener() {
     const qrCanvasId = useId();
+    const { saveLink, count: vaultCount } = useLocalLinkVault();
     const [loading, setLoading] = useState(false);
     const [isBulkOpen, setIsBulkOpen] = useState(false);
+    const [isVaultOpen, setIsVaultOpen] = useState(false);
     const [isStudioOpen, setIsStudioOpen] = useState(false);
     const [studioUrl, setStudioUrl] = useState("");
     const [isSecurityOpen, setIsSecurityOpen] = useState(false);
@@ -174,6 +179,14 @@ export default function PublicShortener() {
                 shortUrl: fullShortUrl,
                 originalUrl: originalUrl.trim(),
                 alias: data.alias,
+            });
+
+            // Automatically persist to browser's private local vault
+            saveLink({
+                alias: data.alias,
+                shortUrl: fullShortUrl,
+                originalUrl: originalUrl.trim(),
+                domain: cleanDomain,
             });
 
             // Broadcast link creation to instantly update open admin dashboard views
@@ -433,6 +446,22 @@ export default function PublicShortener() {
                                         Pro
                                     </span>
                                 </Link>
+
+                                {/* Local Device Link Vault Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsVaultOpen(true)}
+                                    className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-zinc-500 hover:text-zinc-800 transition-colors dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    title="View links created on this device (0 reads, saved in browser)"
+                                >
+                                    <History className="h-3 w-3 text-zinc-400 group-hover:scale-110 group-hover:text-indigo-600 dark:text-zinc-500 dark:group-hover:text-indigo-400 transition-transform" />
+                                    <span>Device History</span>
+                                    {vaultCount > 0 && (
+                                        <span className="rounded bg-indigo-100 dark:bg-indigo-950/60 px-1 py-0.2 text-[9px] font-bold text-indigo-700 dark:text-indigo-300">
+                                            {vaultCount}
+                                        </span>
+                                    )}
+                                </button>
                             </div>
                         </div>
 
@@ -772,6 +801,12 @@ export default function PublicShortener() {
                 isOpen={isStudioOpen}
                 onClose={() => setIsStudioOpen(false)}
                 url={studioUrl}
+            />
+
+            {/* Local Device Link Vault Drawer */}
+            <LocalVaultDrawer
+                isOpen={isVaultOpen}
+                onClose={() => setIsVaultOpen(false)}
             />
         </div>
     );

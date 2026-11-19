@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
+import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 
 interface PrefixShortenConfirmationProps {
     alias: string;
@@ -30,9 +31,12 @@ export default function PrefixShortenConfirmation({
 }: PrefixShortenConfirmationProps) {
     const [copied, setCopied] = useState(false);
     const [showQrModal, setShowQrModal] = useState(false);
+    const { saveLink } = useLocalLinkVault();
 
-    // Auto-copy on mount
+    // Auto-copy and save to device vault on mount
     useEffect(() => {
+        saveLink({ alias, shortUrl, originalUrl });
+
         if (typeof window !== "undefined" && navigator?.clipboard) {
             navigator.clipboard.writeText(shortUrl).then(() => {
                 setCopied(true);
@@ -42,7 +46,7 @@ export default function PrefixShortenConfirmation({
                 // Clipboard permissions might require user interaction
             });
         }
-    }, [shortUrl]);
+    }, [alias, shortUrl, originalUrl, saveLink]);
 
     const handleCopy = async () => {
         try {

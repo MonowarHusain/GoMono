@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode, FileSpreadsheet } from "lucide-react";
 import PublicShortener from "@/components/public/PublicShortener";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
+import LocalVaultDrawer from "@/components/LocalVaultDrawer";
 
 export default function LandingPage() {
   return (
@@ -57,6 +58,9 @@ export default function LandingPage() {
                 Pro
               </span>
             </Link>
+
+            {/* Local Device Vault Trigger */}
+            <LocalVaultDrawer />
 
             {/* Dark/Light Mode Theme Toggle */}
             <ThemeToggle />

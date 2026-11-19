@@ -9,19 +9,10 @@ import {
     BIO_THEMES,
     type BioPage,
     type BioTheme,
-    type SocialPlatform,
 } from "@/lib/bio-schema";
+import { SocialIcon } from "@/components/SocialIcons";
 import {
     ExternalLink,
-    Github,
-    Twitter,
-    Linkedin,
-    Youtube,
-    Instagram,
-    Mail,
-    Globe,
-    Send,
-    MessageSquare,
     Sparkles,
 } from "lucide-react";
 
@@ -85,29 +76,6 @@ export default async function BioPageRoute({ params }: BioPageProps) {
 
     const activeLinks = (data.links || []).filter((l) => l.active !== false);
 
-    const renderSocialIcon = (platform: SocialPlatform) => {
-        switch (platform) {
-            case "github":
-                return <Github className="h-4 w-4" />;
-            case "twitter":
-                return <Twitter className="h-4 w-4" />;
-            case "linkedin":
-                return <Linkedin className="h-4 w-4" />;
-            case "youtube":
-                return <Youtube className="h-4 w-4" />;
-            case "instagram":
-                return <Instagram className="h-4 w-4" />;
-            case "email":
-                return <Mail className="h-4 w-4" />;
-            case "telegram":
-                return <Send className="h-4 w-4" />;
-            case "discord":
-                return <MessageSquare className="h-4 w-4" />;
-            default:
-                return <Globe className="h-4 w-4" />;
-        }
-    };
-
     return (
         <main className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 transition-colors ${theme.wrapperClass}`}>
             {/* Centered Profile Container */}
@@ -117,6 +85,7 @@ export default async function BioPageRoute({ params }: BioPageProps) {
                     <div className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500/30 to-purple-500/30 blur-md opacity-60" />
                     {data.avatarUrl ? (
                         // External image URL (zero server file storage)
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                             src={data.avatarUrl}
                             alt={data.displayName}
@@ -157,7 +126,7 @@ export default async function BioPageRoute({ params }: BioPageProps) {
                                 className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-all hover:scale-110 hover:border-white/30 hover:bg-white/15 hover:text-white"
                                 title={social.platform}
                             >
-                                {renderSocialIcon(social.platform)}
+                                <SocialIcon platform={social.platform} className="h-4 w-4" />
                             </a>
                         ))}
                     </div>

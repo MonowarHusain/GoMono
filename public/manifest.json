@@ -1,0 +1,47 @@
+{
+  "name": "GoMono Enterprise URL Suite",
+  "short_name": "GoMono",
+  "description": "Lightning-fast, zero-storage enterprise URL shortener, custom QR studio, and intelligence suite.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Shorten URL",
+      "url": "/",
+      "description": "Quickly create a short link"
+    },
+    {
+      "name": "QR Studio",
+      "url": "/qr-studio",
+      "description": "Generate custom branded QR codes"
+    },
+    {
+      "name": "CSV Studio",
+      "url": "/csv-studio",
+      "description": "High-performance data grid & bulk shortener"
+    },
+    {
+      "name": "Bio Builder",
+      "url": "/bio-builder",
+      "description": "Create Link-in-Bio profile page"
+    }
+  ],
+  "categories": ["utilities", "productivity", "business"]
+}

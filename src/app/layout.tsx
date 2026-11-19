@@ -9,12 +9,19 @@ import CommandPalette from "@/components/CommandPalette";
 // Optimize font loading
 const inter = Inter({ subsets: ["latin"] });
 
-// Pro-level metadata for SEO and link sharing
+// Pro-level metadata for SEO, PWA, and link sharing
 export const metadata: Metadata = {
   title: "GoMono | Premium Link Management",
-  description: "GoMono | Premium Link Management",
+  description: "Lightning-fast, zero-storage enterprise URL shortener, custom QR studio, and intelligence suite.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "GoMono",
+  },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icon-192.png",
   },
 };
 

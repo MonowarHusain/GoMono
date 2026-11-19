@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode, FileSpreadsheet } from "lucide-react";
+import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrCode, FileSpreadsheet, Wrench } from "lucide-react";
 import PublicShortener from "@/components/public/PublicShortener";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 import LocalVaultDrawer from "@/components/LocalVaultDrawer";
@@ -71,6 +71,16 @@ export default function LandingPage() {
               <span className="rounded-full bg-purple-500/15 px-1.5 py-0.2 text-[9px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
                 New
               </span>
+            </Link>
+
+            {/* Tools Hub Link */}
+            <Link
+              href="/tools"
+              className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-50/60 px-3 py-1.5 text-xs font-semibold text-blue-800 backdrop-blur-md transition-all hover:border-blue-500/50 hover:bg-blue-100/80 dark:border-blue-500/20 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-900/40"
+              title="Open Zero-Cost Browser Tools Hub"
+            >
+              <Wrench className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="hidden min-[480px]:inline">Tools</span>
             </Link>
 
             {/* Local Device Vault Trigger */}

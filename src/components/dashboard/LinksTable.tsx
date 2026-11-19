@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
     ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone, BarChart2,
-    Activity, Loader2, Flame, Pin, Tag
+    Activity, Loader2, Flame, Pin, Tag, CheckSquare
 } from "lucide-react";
+import ExpiryCountdownBadge from "@/components/ExpiryCountdownBadge";
 import { notifyLinkDeleted } from "@/lib/events";
 import type { Link } from "@/types/link";
 
@@ -38,6 +39,8 @@ export default function LinksTable({
     const [filter, setFilter] = useState<FilterType>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    const [selectedAliases, setSelectedAliases] = useState<Set<string>>(new Set());
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [pinnedAliases, setPinnedAliases] = useState<Set<string>>(() => {
         if (typeof window === "undefined") return new Set();
         try {
@@ -197,6 +200,40 @@ export default function LinksTable({
             onDelete?.(alias);
         }
         setIsDeleting(null);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedAliases.size === 0) return;
+        const count = selectedAliases.size;
+        if (!confirm(`Permanently delete ${count} selected link(s)?`)) return;
+
+        setIsBulkDeleting(true);
+        const toastId = toast.loading(`Deleting ${count} links...`);
+        let deletedCount = 0;
+
+        for (const alias of Array.from(selectedAliases)) {
+            const res = await deleteLink(alias);
+            if (!res?.error) {
+                deletedCount++;
+                notifyLinkDeleted(alias);
+                onDelete?.(alias);
+            }
+        }
+
+        setSelectedAliases(new Set());
+        setIsBulkDeleting(false);
+        toast.success(`Deleted ${deletedCount} of ${count} links`, { id: toastId });
+    };
+
+    const handleBulkCopy = async () => {
+        if (selectedAliases.size === 0) return;
+        const selectedLinks = initialLinks.filter((l) => selectedAliases.has(l.alias));
+        const urls = selectedLinks.map((l) => {
+            const domain = (l.domain || "go.mono.bro.bd").replace(/^(https?:\/\/)/, "");
+            return `https://${domain}/${l.alias}`;
+        });
+        await navigator.clipboard.writeText(urls.join("\n"));
+        toast.success(`Copied ${urls.length} short URL(s) to clipboard!`);
     };
 
     return (
@@ -386,18 +423,85 @@ export default function LinksTable({
                     </p>
                 </div>
             ) : (
-                <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="border-b border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-400">
-                                <tr>
-                                    <th className="px-6 py-4 font-medium">Alias & Details</th>
-                                    <th className="px-6 py-4 font-medium">Type</th>
-                                    <th className="px-6 py-4 font-medium">Destination</th>
-                                    <th className="px-6 py-4 font-medium">Analytics</th>
-                                    <th className="px-6 py-4 font-medium text-right">Actions</th>
-                                </tr>
-                            </thead>
+                <div className="space-y-3">
+                    {/* Floating Sticky Bulk Actions Bar */}
+                    {selectedAliases.size > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-500/30 bg-indigo-50/95 dark:border-indigo-500/30 dark:bg-zinc-900/95 p-3 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150">
+                            <div className="flex items-center gap-2">
+                                <CheckSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                                    {selectedAliases.size} of {filteredLinks.length} link(s) selected
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedAliases(new Set(filteredLinks.map((l) => l.alias)))}
+                                    className="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400 ml-2"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedAliases(new Set())}
+                                    className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 ml-1"
+                                >
+                                    Deselect
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleBulkCopy}
+                                    className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition"
+                                >
+                                    <Copy className="h-3.5 w-3.5" />
+                                    <span>Copy Short URLs</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleBulkDelete}
+                                    disabled={isBulkDeleting}
+                                    className="inline-flex items-center gap-1 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-red-700 active:scale-95 disabled:opacity-50 transition"
+                                >
+                                    {isBulkDeleting ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    )}
+                                    <span>Delete Selected ({selectedAliases.size})</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                <thead className="border-b border-slate-200 dark:border-neutral-800 bg-white shadow-sm dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-400">
+                                    <tr>
+                                        <th className="px-4 py-4 w-10 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredLinks.length > 0 && selectedAliases.size === filteredLinks.length}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedAliases(new Set(filteredLinks.map((l) => l.alias)));
+                                                    } else {
+                                                        setSelectedAliases(new Set());
+                                                    }
+                                                }}
+                                                className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                title="Select all visible links"
+                                            />
+                                        </th>
+                                        <th className="px-6 py-4 font-medium">Alias & Details</th>
+                                        <th className="px-6 py-4 font-medium">Type</th>
+                                        <th className="px-6 py-4 font-medium">Destination</th>
+                                        <th className="px-6 py-4 font-medium">Analytics</th>
+                                        <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                    </tr>
+                                </thead>
                             <tbody className="divide-y divide-neutral-800/50">
                                 {filteredLinks.map((link) => {
                                     const isPub = isPublicLink(link);
@@ -414,6 +518,21 @@ export default function LinksTable({
                                                     : "hover:bg-slate-50 dark:hover:bg-neutral-800/30"
                                             }`}
                                         >
+                                            <td className="px-4 py-4 w-10 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAliases.has(link.alias)}
+                                                    onChange={() => {
+                                                        setSelectedAliases((prev) => {
+                                                            const next = new Set(prev);
+                                                            if (next.has(link.alias)) next.delete(link.alias);
+                                                            else next.add(link.alias);
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <button
@@ -444,10 +563,8 @@ export default function LinksTable({
                                                             <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
                                                         </span>
                                                     )}
-                                                    {link.expiresAt && new Date(link.expiresAt) < new Date() && (
-                                                        <span className="flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                                            Expired
-                                                        </span>
+                                                    {link.expiresAt && (
+                                                        <ExpiryCountdownBadge expiresAt={link.expiresAt} />
                                                     )}
                                                     {(link.isBurned || (link.burnAfterRead && link.totalClicks >= 1)) ? (
                                                         <span className="flex items-center gap-1 rounded bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider animate-pulse">
@@ -641,6 +758,7 @@ export default function LinksTable({
                          />
                      )}
                  </div>
+             </div>
              )}
          </div>
      );

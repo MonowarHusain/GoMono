@@ -76,6 +76,17 @@
 - **Zero-Dependency Bot & Crawler Shield**: Intelligent user-agent detection intercepts search crawlers (Googlebot, Bingbot, Baiduspider), social scrapers, and automated scripts (curl, wget, python-requests) to bypass analytics logging—preserving free-tier Firestore write quotas.
 - **Dynamic Social OpenGraph (OG) Cloaking**: Custom social cards (`ogTitle`, `ogDescription`, `ogImage`) served specifically to social preview bots (WhatsApp, Discord, Twitterbot, Telegram, Facebook) with automatic `<meta http-equiv="refresh">` client fallback.
 
+### 9. 📱 Zero-Storage Link-in-Bio Studio (`/bio-builder` & `/b/[handle]`)
+- **Fast Mobile-First Profile Pages**: Dedicated public profiles at `/b/[handle]` with custom avatars, display names, bio descriptions, social rows, and interactive destination cards.
+- **5 Curated Designer Themes**: Minimal Light, Midnight Dark, Emerald Glass, Cyber Indigo, and Sunset Gradient.
+- **Zero-Storage Privacy Architecture**: Built entirely around external image links—100% zero file storage uploads, bounded to <15KB Firestore payloads.
+- **Anonymous Creator Ownership**: Automatically stores a cryptographic `editToken` in creator browser `localStorage` (`gomono_bio_edit_tokens`), allowing free profile updates anytime without requiring an account.
+
+### 10. 🎯 Growth & Experimentation Engine
+- **Weighted A/B Traffic Splitting**: Run high-conversion split testing experiments by specifying a Challenger Variant B URL and split weight (50/50, 80/20, 90/10) with zero external routing latency.
+- **Built-in Campaign UTM Studio**: Query-safe parameter builder (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`) with 1-click channel presets (WhatsApp, LinkedIn, X/Twitter, Newsletter, QR Print) and local preset persistence (`gomono_utm_presets`).
+- **Global `Cmd+K` / `Ctrl+K` Command Palette**: Raycast-inspired keyboard command bar accessible from any page for instantaneous navigation between Shortener, Bio Studio, CSV Studio, QR Studio, recent Device Vault links, and 1-click clipboard shortening.
+
 ---
 
 ## 🏛️ Architecture & Design Philosophy

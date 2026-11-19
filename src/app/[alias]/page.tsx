@@ -6,6 +6,7 @@ import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 import { detectTrafficType } from "@/lib/bot-detector";
 import PasswordGate from "@/components/public/PasswordGate";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
+import LinkInspectorCard, { type LinkInspectorData } from "@/components/LinkInspectorCard";
 
 interface PageProps {
     // Next.js 15 requires dynamic route parameters to be Promises
@@ -18,11 +19,21 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     const resolvedParams = await params;
     const resolvedSearchParams = await searchParams;
 
-    const alias = resolvedParams.alias;
+    const rawAlias = resolvedParams.alias;
     const attemptedPassword = resolvedSearchParams.pwd;
 
     // Ignore browser/crawler static asset probes
-    if (alias === "favicon.ico" || alias === "robots.txt" || alias === "sitemap.xml") {
+    if (rawAlias === "favicon.ico" || rawAlias === "robots.txt" || rawAlias === "sitemap.xml") {
+        notFound();
+    }
+
+    // Check for Bitly-style '+' or '%2B' inspection suffix
+    const isInspectionMode = rawAlias.endsWith("+") || rawAlias.endsWith("%2B") || rawAlias.endsWith("%2b");
+    const alias = isInspectionMode
+        ? rawAlias.replace(/(\+|\%2b|\%2B)$/, "")
+        : rawAlias;
+
+    if (!alias) {
         notFound();
     }
 
@@ -62,6 +73,24 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
     const totalClicks = typeof data.totalClicks === "number" ? data.totalClicks : 0;
     const maxClicks = typeof data.maxClicks === "number" ? data.maxClicks : (data.maxClicks ? parseInt(String(data.maxClicks), 10) : null);
     const isLimitReached = Boolean(maxClicks && maxClicks > 0 && totalClicks >= maxClicks);
+
+    // 5. If inspection mode was requested (e.g., /alias+), render safety inspector immediately without tracking click
+    if (isInspectionMode) {
+        const inspectorData: LinkInspectorData = {
+            alias,
+            originalUrl: data.originalUrl,
+            domain: data.domain || "to.mono.bro.bd",
+            totalClicks,
+            createdAt: data.createdAt ? (typeof data.createdAt.toDate === "function" ? data.createdAt.toDate() : new Date(data.createdAt)) : null,
+            expiresAt: expirationDate,
+            isProtected: Boolean(data.isProtected || data.password),
+            iosUrl: data.iosUrl || null,
+            androidUrl: data.androidUrl || null,
+            tags: Array.isArray(data.tags) ? data.tags : [],
+        };
+
+        return <LinkInspectorCard link={inspectorData} />;
+    }
 
     // If expired or limit is reached, render clean, professional error view
     if (isExpired || isLimitReached) {

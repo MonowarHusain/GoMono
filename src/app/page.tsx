@@ -60,6 +60,19 @@ export default function LandingPage() {
               </span>
             </Link>
 
+            {/* Link-in-Bio Studio Link */}
+            <Link
+              href="/bio-builder"
+              className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-50/60 px-3 py-1.5 text-xs font-semibold text-purple-800 backdrop-blur-md transition-all hover:border-purple-500/50 hover:bg-purple-100/80 dark:border-purple-500/20 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:border-purple-500/40 dark:hover:bg-purple-900/40"
+              title="Create zero-storage mobile Bio Page"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              <span className="hidden min-[480px]:inline">Bio Page</span>
+              <span className="rounded-full bg-purple-500/15 px-1.5 py-0.2 text-[9px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                New
+              </span>
+            </Link>
+
             {/* Local Device Vault Trigger */}
             <LocalVaultDrawer />
 

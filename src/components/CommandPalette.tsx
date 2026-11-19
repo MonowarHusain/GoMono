@@ -37,14 +37,26 @@ export default function CommandPalette() {
     const inputRef = useRef<HTMLInputElement>(null);
     const { links: vaultLinks } = useLocalLinkVault();
 
+    const closePalette = () => {
+        setIsOpen(false);
+        setQuery("");
+        setSelectedIndex(0);
+    };
+
     // Listen for Cmd+K and Ctrl+K globally
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
                 e.preventDefault();
-                setIsOpen((prev) => !prev);
+                setIsOpen((prev) => {
+                    if (!prev) {
+                        setQuery("");
+                        setSelectedIndex(0);
+                    }
+                    return !prev;
+                });
             } else if (e.key === "Escape" && isOpen) {
-                setIsOpen(false);
+                closePalette();
             }
         };
 
@@ -55,19 +67,17 @@ export default function CommandPalette() {
     // Auto-focus input when opened
     useEffect(() => {
         if (isOpen) {
-            setQuery("");
-            setSelectedIndex(0);
-            setTimeout(() => inputRef.current?.focus(), 50);
+            inputRef.current?.focus();
         }
     }, [isOpen]);
 
     const navigateTo = (path: string) => {
-        setIsOpen(false);
+        closePalette();
         router.push(path);
     };
 
     const handlePasteAndShorten = async () => {
-        setIsOpen(false);
+        closePalette();
         try {
             if (typeof window !== "undefined" && navigator?.clipboard) {
                 const text = await navigator.clipboard.readText();
@@ -85,7 +95,7 @@ export default function CommandPalette() {
     };
 
     const handleCopyBookmarklet = async () => {
-        setIsOpen(false);
+        closePalette();
         try {
             const code = `javascript:(function(){var u=location.href;window.open('https://to.mono.bro.bd/'+encodeURIComponent(u),'_blank');})();`;
             await navigator.clipboard.writeText(code);
@@ -160,7 +170,7 @@ export default function CommandPalette() {
             category: "Device Vault" as const,
             badge: "Vault",
             action: () => {
-                setIsOpen(false);
+                closePalette();
                 window.open(v.shortUrl, "_blank");
             },
         })),
@@ -197,7 +207,7 @@ export default function CommandPalette() {
     return (
         <div
             className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:pt-24 backdrop-blur-md bg-black/60 animate-in fade-in duration-150"
-            onClick={() => setIsOpen(false)}
+            onClick={closePalette}
         >
             <div
                 className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-zinc-200/90 bg-white/95 shadow-2xl backdrop-blur-2xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in zoom-in-95 duration-150"
@@ -224,7 +234,7 @@ export default function CommandPalette() {
                         </kbd>
                         <button
                             type="button"
-                            onClick={() => setIsOpen(false)}
+                            onClick={closePalette}
                             className="rounded-lg p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                         >
                             <X className="h-4 w-4" />

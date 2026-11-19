@@ -514,6 +514,19 @@ export default function PublicShortener() {
                                     </span>
                                 </Link>
 
+                                {/* Standalone Link-in-Bio Studio Link */}
+                                <Link
+                                    href="/bio-builder"
+                                    className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-purple-600 hover:text-purple-700 transition-colors dark:text-purple-400 dark:hover:text-purple-300"
+                                    title="Create free Link-in-Bio profile page"
+                                >
+                                    <Sparkles className="h-3 w-3 text-purple-500 group-hover:scale-110 transition-transform" />
+                                    <span>Bio Page</span>
+                                    <span className="rounded bg-purple-100 dark:bg-purple-950/60 px-1 py-0.2 text-[9px] font-bold text-purple-700 dark:text-purple-300 uppercase">
+                                        New
+                                    </span>
+                                </Link>
+
                                 {/* Local Device Link Vault Trigger */}
                                 <button
                                     type="button"

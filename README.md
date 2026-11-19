@@ -87,6 +87,30 @@
 - **Built-in Campaign UTM Studio**: Query-safe parameter builder (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`) with 1-click channel presets (WhatsApp, LinkedIn, X/Twitter, Newsletter, QR Print) and local preset persistence (`gomono_utm_presets`).
 - **Global `Cmd+K` / `Ctrl+K` Command Palette**: Raycast-inspired keyboard command bar accessible from any page for instantaneous navigation between Shortener, Bio Studio, CSV Studio, QR Studio, recent Device Vault links, and 1-click clipboard shortening.
 
+### 11. 🌐 Zero-API Accept-Language Locale Smart Routing
+- **Native Browser Language Routing**: Automatically redirect visitors to localized pages (e.g., Spanish `/es`, French `/fr`, Japanese `/ja`, German `/de`, Bengali `/bn`) based on incoming RFC 7231 `Accept-Language` headers.
+- **Quality Factor ($q$) Sorting**: Accurately honors user language priority lists with prefix and region fallback matching (e.g., `es-MX` -> `es`).
+- **$0 Free-Tier Architecture**: 100% zero external GeoIP API calls, zero vendor lock-in, and sub-millisecond edge resolution.
+
+### 12. ⏰ Scheduled Time-Window Links & Active Operating Hours
+- **Future Launch & Expiration Windows**: Specify exact activation timestamps (`startAt`) and hard sunset times (`endAt`).
+- **Recurring Active Operating Windows**: Restrict link availability to specific days of the week (e.g., Monday through Friday) and daily active hour windows (e.g., 09:00 to 18:00 UTC).
+- **Branded Holding Screen**: Visitors arriving before launch or outside scheduled operating hours receive a clean holding notice detailing link availability status.
+
+### 13. 🔐 Cryptographic SHA-256 Link Password Gates
+- **One-Way SHA-256 Hashing**: Passwords are cryptographically hashed using the Web Crypto API before storing in Firestore—passwords are never saved in plain text.
+- **Timing-Attack Resistance**: Verification uses bitwise XOR constant-time byte accumulation to guard against side-channel analysis.
+- **Interactive Unlock Gate**: Displays an elegant glassmorphism unlock modal (`PasswordGateCard`) prompting visitors for the passcode before revealing or redirecting to the destination.
+
+### 14. 🩺 Zero-Cost Batch HTTP Link Health Checker
+- **Lightweight Batch Status Checker**: Evaluates up to 25 target URLs concurrently via `/api/health-check` using non-blocking HTTP `HEAD` requests and a 4-second timeout.
+- **Range GET Resiliency Fallback**: Automatically falls back to a single-byte `Range: bytes=0-0` GET request for servers that reject or drop HEAD requests (e.g. Cloudflare, AWS CloudFront, Fastly).
+- **Live Status Badges**: Integrated directly into both the Admin Dashboard table (`200 OK`, `Redirect`, `Broken`) and the CSV Studio data grid with instant "Health Status" column generation.
+
+### 15. 🚀 One-Click Social Share Matrix & Embed Snippets
+- **Multi-Platform Share Triggers**: 1-click instant sharing to WhatsApp, X (Twitter), LinkedIn, Telegram, and Email with pre-filled link copy.
+- **Instant Embed Copy**: 1-click buttons to copy Markdown snippets (`[Title](shortUrl)`) and HTML anchor tags (`<a href="shortUrl">Title</a>`) for fast publishing in documentation, newsletters, and blogs.
+
 ---
 
 ## 🏛️ Architecture & Design Philosophy
@@ -311,6 +335,71 @@ Authorization: Bearer <optional-firebase-token>
       "referer": "https://t.co"
     }
   ]
+}
+```
+
+---
+
+### 3. Batch URL Health Check
+```http
+POST /api/health-check
+Content-Type: application/json
+```
+
+#### Request Body
+```json
+{
+  "urls": [
+    "https://github.com/MonowarHusain/GoMono",
+    "https://example.com/broken-page"
+  ]
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "total": 2,
+  "results": [
+    {
+      "url": "https://github.com/MonowarHusain/GoMono",
+      "status": 200,
+      "ok": true,
+      "statusText": "OK",
+      "latencyMs": 85
+    },
+    {
+      "url": "https://example.com/broken-page",
+      "status": 404,
+      "ok": false,
+      "statusText": "Not Found",
+      "latencyMs": 142
+    }
+  ]
+}
+```
+
+---
+
+### 4. Verify Link Passcode (Gated Links)
+```http
+POST /api/verify-password
+Content-Type: application/json
+```
+
+#### Request Body
+```json
+{
+  "alias": "protected-doc",
+  "password": "user-entered-passcode"
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "destinationUrl": "https://example.com/confidential-brief.pdf"
 }
 ```
 

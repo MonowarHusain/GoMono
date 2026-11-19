@@ -4,7 +4,7 @@ import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is di
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 import { detectTrafficType } from "@/lib/bot-detector";
-import { resolveSplitDestination } from "@/lib/ab-router";
+import { resolveRotatorDestination } from "@/lib/ab-router";
 import { resolveLocaleDestination } from "@/lib/locale-router";
 import { evaluateLinkSchedule } from "@/lib/schedule-evaluator";
 import { resolveDeepLink } from "@/lib/deep-link-mapper";
@@ -193,13 +193,13 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         if (localeResult.matchedLocale) {
             destinationUrl = localeResult.destinationUrl;
         } else if (Array.isArray(data.abVariants) && data.abVariants.length > 0) {
-            const splitResult = resolveSplitDestination(data.abVariants, data.originalUrl);
-            destinationUrl = splitResult.selectedUrl;
+            const rotatorResult = resolveRotatorDestination(data.abVariants, data.originalUrl, totalClicks);
+            destinationUrl = rotatorResult.selectedUrl;
         }
     } else if (Array.isArray(data.abVariants) && data.abVariants.length > 0) {
-        // Weighted A/B split testing destination resolution
-        const splitResult = resolveSplitDestination(data.abVariants, data.originalUrl);
-        destinationUrl = splitResult.selectedUrl;
+        // Multi-destination link rotator & weighted A/B split testing resolution
+        const rotatorResult = resolveRotatorDestination(data.abVariants, data.originalUrl, totalClicks);
+        destinationUrl = rotatorResult.selectedUrl;
     }
 
     // 7b. Native Mobile App Deep-Linking Scheme Resolution

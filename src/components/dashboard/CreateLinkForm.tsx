@@ -5,7 +5,7 @@ import {
     Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
     Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode,
-    ShieldCheck, Dices
+    ShieldCheck, Dices, SlidersHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
@@ -92,12 +92,27 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             const rawIosUrl = (formData.get("iosUrl") as string | null)?.trim() || null;
             const rawAndroidUrl = (formData.get("androidUrl") as string | null)?.trim() || null;
             const rawSplashMessage = (formData.get("splashMessage") as string | null)?.trim() || null;
+            const rawRotator = (formData.get("rotatorUrls") as string | null)?.trim() || null;
+
+            let abVariants = undefined;
+            if (rawRotator) {
+                const urls = [finalOriginalUrl, ...rawRotator.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)];
+                if (urls.length > 1) {
+                    const weight = Math.max(1, Math.floor(100 / urls.length));
+                    abVariants = urls.map((u, i) => ({
+                        url: u,
+                        weight,
+                        label: `Variant ${String.fromCharCode(65 + i)}`,
+                    }));
+                }
+            }
 
             const data = {
                 originalUrl: finalOriginalUrl,
                 iosUrl: rawIosUrl || undefined,
                 androidUrl: rawAndroidUrl || undefined,
                 splashMessage: rawSplashMessage || undefined,
+                abVariants,
                 customAlias: formData.get("customAlias"),
                 domain: selectedDomain,
                 tags: rawTags,
@@ -497,6 +512,20 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                     type="text"
                                     placeholder="e.g. Redirecting to our official 2025 launch announcement..."
                                     maxLength={250}
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Multi-Destination Link Rotator */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <SlidersHorizontal className="h-3.5 w-3.5 text-indigo-500" />
+                                    <span>Multi-Destination Link Rotator (Optional)</span>
+                                </label>
+                                <input
+                                    name="rotatorUrls"
+                                    type="text"
+                                    placeholder="Extra pool URLs separated by commas or newlines (rotates visits)"
                                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
                                 />
                             </div>

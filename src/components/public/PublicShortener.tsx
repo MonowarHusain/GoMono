@@ -93,6 +93,7 @@ export default function PublicShortener() {
     const [deepLink, setDeepLink] = useState(false);
     const [splashMessage, setSplashMessage] = useState("");
     const [variantBUrl, setVariantBUrl] = useState("");
+    const [extraRotatorUrls, setExtraRotatorUrls] = useState<string[]>([]);
     const [splitWeight, setSplitWeight] = useState(50);
     const [localeRules, setLocaleRules] = useState<Record<string, string>>({});
     const [newLocaleCode, setNewLocaleCode] = useState("bn");
@@ -125,6 +126,7 @@ export default function PublicShortener() {
         setDeepLink(false);
         setSplashMessage("");
         setVariantBUrl("");
+        setExtraRotatorUrls([]);
         setSplitWeight(50);
         setLocaleRules({});
         setNewLocaleUrl("");
@@ -228,10 +230,16 @@ export default function PublicShortener() {
                 ogDescription: ogDescription.trim() || undefined,
                 ogImage: ogImage.trim() || undefined,
                 abVariants: variantBUrl.trim()
-                    ? [
-                        { url: originalUrl.trim(), weight: 100 - splitWeight, label: "Variant A (Control)" },
-                        { url: variantBUrl.trim(), weight: splitWeight, label: "Variant B (Challenger)" },
-                    ]
+                    ? extraRotatorUrls.filter((u) => u.trim()).length > 0
+                        ? [originalUrl.trim(), variantBUrl.trim(), ...extraRotatorUrls.filter((u) => u.trim())].map((u, i, arr) => ({
+                            url: u,
+                            weight: Math.max(1, Math.floor(100 / arr.length)),
+                            label: `Variant ${String.fromCharCode(65 + i)}`,
+                        }))
+                        : [
+                            { url: originalUrl.trim(), weight: 100 - splitWeight, label: "Variant A (Control)" },
+                            { url: variantBUrl.trim(), weight: splitWeight, label: "Variant B (Challenger)" },
+                        ]
                     : undefined,
                 localeRules: Object.keys(localeRules).length > 0 ? localeRules : undefined,
                 schedule: (scheduleStartAt || scheduleEndAt || scheduleStartHour !== "") ? {
@@ -854,6 +862,7 @@ export default function PublicShortener() {
                                                 setDeepLink(false);
                                                 setSplashMessage("");
                                                 setVariantBUrl("");
+                                                setExtraRotatorUrls([]);
                                                 setSplitWeight(50);
                                                 setLocaleRules({});
                                                 setIsAddingLocale(false);
@@ -970,19 +979,19 @@ export default function PublicShortener() {
                                     />
                                 </div>
 
-                                {/* A/B Split Testing Traffic Section */}
+                                {/* A/B Split Testing & Link Rotator Traffic Section */}
                                 <div className="mt-3.5 border-t border-zinc-200/60 pt-3 dark:border-zinc-800/60">
                                     <div className="mb-2 flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
                                             <SlidersHorizontal className="h-3 w-3 text-indigo-500" />
                                             <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                                                A/B Traffic Split Experiment
+                                                A/B Split Testing & Multi-Link Rotator
                                             </span>
                                             <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-                                                Optional
+                                                Rotator Pool
                                             </span>
                                         </div>
-                                        {variantBUrl && (
+                                        {variantBUrl && extraRotatorUrls.length === 0 && (
                                             <div className="flex items-center gap-1 text-[10px]">
                                                 <button
                                                     type="button"
@@ -1010,15 +1019,64 @@ export default function PublicShortener() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <input
-                                            type="url"
-                                            value={variantBUrl}
-                                            onChange={(e) => setVariantBUrl(e.target.value)}
-                                            placeholder="Variant B URL (e.g. challenger landing page)"
-                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="url"
+                                                value={variantBUrl}
+                                                onChange={(e) => setVariantBUrl(e.target.value)}
+                                                placeholder="Variant B URL (e.g. challenger landing page)"
+                                                className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
+                                            />
+                                        </div>
+
+                                        {/* Extra Rotator Pool URLs (Variant C, D, etc.) */}
+                                        {extraRotatorUrls.map((extraUrl, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                                                <div className="relative flex-1">
+                                                    <input
+                                                        type="url"
+                                                        value={extraUrl}
+                                                        onChange={(e) => {
+                                                            const updated = [...extraRotatorUrls];
+                                                            updated[idx] = e.target.value;
+                                                            setExtraRotatorUrls(updated);
+                                                        }}
+                                                        placeholder={`Variant ${String.fromCharCode(67 + idx)} URL (Rotator Pool Item ${idx + 3})`}
+                                                        className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExtraRotatorUrls(extraRotatorUrls.filter((_, i) => i !== idx))}
+                                                    className="rounded-lg p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                                    title="Remove from pool"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
 
                                         {variantBUrl.trim() && (
+                                            <div className="flex items-center justify-between pt-1">
+                                                {extraRotatorUrls.length < 4 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExtraRotatorUrls([...extraRotatorUrls, ""])}
+                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                        <span>Add Destination to Rotator Pool ({extraRotatorUrls.length + 2}/6)</span>
+                                                    </button>
+                                                )}
+                                                {extraRotatorUrls.length > 0 && (
+                                                    <span className="text-[10px] text-zinc-500 font-mono">
+                                                        Equal round-robin split (~{Math.floor(100 / (2 + extraRotatorUrls.filter(Boolean).length))}% each)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {variantBUrl.trim() && extraRotatorUrls.length === 0 && (
                                             <div className="rounded-xl border border-zinc-200/60 bg-white/60 p-2.5 dark:border-zinc-800/60 dark:bg-zinc-950/40">
                                                 <div className="flex items-center justify-between text-[11px] mb-1.5 font-medium">
                                                     <span className="text-zinc-600 dark:text-zinc-400">

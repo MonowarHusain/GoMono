@@ -31,6 +31,7 @@ import {
     Globe,
     Plus,
     Trash2,
+    ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -43,6 +44,7 @@ import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { parseUtmUrl } from "@/lib/utm-builder";
 import { POPULAR_LOCALES } from "@/lib/locale-router";
 import { notifyLinkCreated } from "@/lib/events";
+import { cleanTrackingParams } from "@/lib/url-cleaner";
 
 interface ShortenResult {
     shortUrl: string;
@@ -70,6 +72,7 @@ export default function PublicShortener() {
     const [showPassword, setShowPassword] = useState(false);
     const [isDomainOpen, setIsDomainOpen] = useState(false);
     const [showQrDrawer, setShowQrDrawer] = useState(false);
+    const [autoStripTrackers, setAutoStripTrackers] = useState(true);
 
     // Form inputs
     const [originalUrl, setOriginalUrl] = useState("");
@@ -166,6 +169,24 @@ export default function PublicShortener() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isDomainOpen]);
 
+    const handleStripTrackers = () => {
+        if (originalUrl.trim()) {
+            const res = cleanTrackingParams(originalUrl);
+            if (res.hasModifications) {
+                setOriginalUrl(res.cleanedUrl);
+                toast.success(`Removed ${res.removedParams.length} tracker parameter(s): ${res.removedParams.join(", ")}`);
+            } else {
+                toast.info("No tracking parameters found in this URL.");
+            }
+        } else {
+            setAutoStripTrackers((prev) => {
+                const next = !prev;
+                toast.info(next ? "Auto-strip trackers enabled" : "Auto-strip trackers disabled");
+                return next;
+            });
+        }
+    };
+
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
@@ -179,8 +200,13 @@ export default function PublicShortener() {
         const toastId = toast.loading("Generating your short link...");
 
         try {
+            let finalUrl = originalUrl.trim();
+            if (autoStripTrackers) {
+                finalUrl = cleanTrackingParams(finalUrl).cleanedUrl;
+            }
+
             const payload = {
-                originalUrl: originalUrl.trim(),
+                originalUrl: finalUrl,
                 iosUrl: iosUrl.trim() || undefined,
                 androidUrl: androidUrl.trim() || undefined,
                 customAlias: customAlias.trim() || undefined,
@@ -500,6 +526,24 @@ export default function PublicShortener() {
                                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
                                     )}
                                     <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isUtmOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* Strip Trackers Toggle / Clean Action */}
+                                <button
+                                    type="button"
+                                    onClick={handleStripTrackers}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all ${
+                                        autoStripTrackers
+                                            ? "text-emerald-600 bg-emerald-50 border border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/30"
+                                            : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    }`}
+                                    title={originalUrl.trim() ? "Click to sanitize entered URL immediately" : "Toggle automatic tracking parameter stripping (fbclid/gclid)"}
+                                >
+                                    <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                                    <span>Strip Trackers</span>
+                                    {autoStripTrackers && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                                    )}
                                 </button>
                             </div>
 

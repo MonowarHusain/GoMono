@@ -4,13 +4,15 @@ import { useState } from "react";
 import {
     Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
-    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode
+    Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode,
+    ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import { type Link } from "@/components/dashboard/LinksTable";
 import { notifyLinkCreated } from "@/lib/events";
 import QrStudioModal from "@/components/qr/QrStudio";
+import { cleanTrackingParams } from "@/lib/url-cleaner";
 
 // Accept onLinkCreated with optional newly created Link item
 export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (newLink?: Link) => void }) {
@@ -24,6 +26,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
     const [createdData, setCreatedData] = useState<{ shortUrl: string; originalUrl: string; alias: string } | null>(null);
     const [copied, setCopied] = useState(false);
     const [showStudio, setShowStudio] = useState(false);
+    const [autoCleanTrackers, setAutoCleanTrackers] = useState(true);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -49,6 +52,9 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             const token = await currentUser.getIdToken();
 
             let finalOriginalUrl = formData.get("originalUrl") as string;
+            if (autoCleanTrackers && finalOriginalUrl) {
+                finalOriginalUrl = cleanTrackingParams(finalOriginalUrl).cleanedUrl;
+            }
             const selectedDomain = (formData.get("domain") as string) || "to.mono.bro.bd";
 
             // --- UTM Builder Logic ---
@@ -208,18 +214,50 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
         <div className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Destination URL */}
-                <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                        <Link2 className="h-5 w-5 text-neutral-400" />
+                <div>
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <Link2 className="h-5 w-5 text-neutral-400" />
+                        </div>
+                        <input
+                            id="originalUrlInput"
+                            name="originalUrl"
+                            type="url"
+                            required
+                            placeholder="https://example.com/very-long-url"
+                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
+                        />
                     </div>
-                    <input
-                        id="originalUrlInput"
-                        name="originalUrl"
-                        type="url"
-                        required
-                        placeholder="https://example.com/very-long-url"
-                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white dark:focus:border-blue-500/50"
-                    />
+                    <div className="mt-1.5 flex items-center justify-between px-1">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const input = document.getElementById("originalUrlInput") as HTMLInputElement;
+                                if (input && input.value.trim()) {
+                                    const res = cleanTrackingParams(input.value);
+                                    if (res.hasModifications) {
+                                        input.value = res.cleanedUrl;
+                                        toast.success(`Removed ${res.removedParams.length} tracker parameter(s): ${res.removedParams.join(", ")}`);
+                                    } else {
+                                        toast.info("No tracking parameters found in URL.");
+                                    }
+                                } else {
+                                    setAutoCleanTrackers(!autoCleanTrackers);
+                                    toast.info(!autoCleanTrackers ? "Auto-strip trackers enabled" : "Auto-strip trackers disabled");
+                                }
+                            }}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium transition ${
+                                autoCleanTrackers
+                                    ? "text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40"
+                                    : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                            }`}
+                            title="Strip tracking parameters (fbclid, gclid, etc.)"
+                        >
+                            <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                            <span>Strip Trackers (fbclid/gclid)</span>
+                            {autoCleanTrackers && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Domain & Alias Row */}

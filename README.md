@@ -111,6 +111,59 @@
 - **Multi-Platform Share Triggers**: 1-click instant sharing to WhatsApp, X (Twitter), LinkedIn, Telegram, and Email with pre-filled link copy.
 - **Instant Embed Copy**: 1-click buttons to copy Markdown snippets (`[Title](shortUrl)`) and HTML anchor tags (`<a href="shortUrl">Title</a>`) for fast publishing in documentation, newsletters, and blogs.
 
+### 16. 🛡️ Privacy Shield: One-Click Tracking Parameter Stripper
+- **Zero-Storage URL Sanitizer (`src/lib/url-cleaner.ts`)**: Automatically strips invasive surveillance parameters (`fbclid`, `gclid`, `msclkid`, `igshid`, `ttclid`, `twclid`, `si`, `_hsenc`, `mc_eid`) while preserving valid functional query keys.
+- **Interactive UI Toggle**: One-click "Strip Trackers" pill in public shortener and admin forms to clean URLs before generating short links.
+
+### 17. 🎲 Memorable "Magic Dice" Alias & Pronounceable Slug Generator
+- **Human-Friendly Slugs (`src/lib/alias-generator.ts`)**: Generates memorable adjective-noun pairs (e.g. `swift-falcon`, `cosmic-orbit`) and pronounceable phonetic slugs (e.g. `bonari`, `velura`).
+- **1-Click Magic Dice Button**: Integrated directly into custom alias fields in both public and admin shortener forms.
+
+### 18. 🔥 Burn-After-Reading (Self-Destructing 1-Time) Links Engine
+- **Atomic Deactivation**: Links self-destruct immediately after the very first human visitor arrives; destination is wiped and future visitors are routed to a branded `/burned` view.
+- **Visual Status Badges**: Dedicated glowing flame badges in the Admin Dashboard and Local Device Vault.
+
+### 19. 📑 Bulk Regex URL Extractor from Unstructured Text
+- **Unstructured Text Blob Parser (`src/lib/url-extractor.ts`)**: Extracts all valid HTTP/HTTPS URLs from raw articles, customer support logs, emails, and markdown paragraphs.
+- **Dedicated Modal**: Integrated directly into the Bulk Shortener modal and standalone CSV Studio toolbar.
+
+### 20. 📲 Native Mobile App Deep-Link URI Auto-Mapper
+- **Direct App Launch (`src/lib/deep-link-mapper.ts`)**: Detects standard web URLs for YouTube, Twitter/X, Instagram, Spotify, GitHub, and LinkedIn, converting them to native app protocols (`vnd.youtube://`, `spotify://`, `twitter://`) on iOS and Android visitors.
+- **Zero-Paid SDK Dependencies**: Works entirely via native client URI schemes without paid branch/app-indexing vendors.
+
+### 21. 📷 Zero-Storage Client-Side QR Image Decoder
+- **Hardware-Accelerated Scanning (`src/lib/qr-decoder.ts`)**: Uses the browser's native `BarcodeDetector` API and canvas pixel sampling to decode QR codes directly from image uploads and clipboard paste (`Ctrl+V`).
+- **1-Click Shorten Decoded URL**: Allows instant re-shortening of any decoded QR destination.
+
+### 22. ⏳ Customizable Branded 3-Second Redirect Interstitial Screen
+- **Splash Announcement Screen (`src/components/RedirectSplashScreen.tsx`)**: Optional 3-second animated circular countdown screen with customizable announcement message, destination preview, and manual "Open Destination Now" override.
+
+### 23. 🔀 Multi-Destination Link Rotator (Weighted & Round-Robin Pools)
+- **Rotator Pools (`src/lib/ab-router.ts`)**: Extends A/B testing into a multi-URL traffic rotator (up to 6 destinations) with weighted random or deterministic round-robin (`clickCount % poolSize`) distribution.
+
+### 24. ⭐ Link Favorites / Pinning & Color-Coded Tag Filters
+- **Star / Pin to Top**: Pin priority links to the top of both the Admin Dashboard table and the Local Device Vault.
+- **Interactive Tag Filtering**: One-click color-coded tag pills dynamically extracted across links for instantaneous category filtering.
+
+### 25. 📊 Client-Side Peak Click Hours & Inline SVG Sparkline Charts
+- **Peak Hours Aggregator (`src/lib/analytics-aggregator.ts`)**: Computes 24-hour visitor distribution, identifies peak operating hours, and generates RFC-4180 compliant CSV exports.
+- **Zero-Dependency SVG Sparklines (`src/components/AnalyticsSparkCharts.tsx`)**: Interactive 7-day trend sparkline and 24-hour click distribution bar charts mounted in link intelligence modals.
+
+### 26. 🔔 Zero-Cost Discord, Slack, and HTTP Webhook Click Alerts
+- **Real-Time Click Pings (`src/lib/webhook-notifier.ts`)**: Fires non-blocking HTTP POST alerts with rich embeds to Discord webhooks, Slack incoming webhooks, or custom endpoints with a strict 3-second timeout.
+
+### 27. 📲 Progressive Web App (PWA) & Offline Desktop Install
+- **Installable Web App**: Configured with `public/manifest.json`, standalone display mode, high-res PWA icons, and fast app-like launching on desktop and mobile home screens.
+
+### 28. ⌨️ Global Keyboard Shortcut Cheat-Sheet (`?` Key)
+- **Power User Modal (`src/components/ShortcutsModal.tsx`)**: Press `?` from any screen to view all system shortcuts (`Cmd+K` command palette, `?` cheat-sheet, `Esc` dismiss, `/[alias]+` inspection).
+
+### 29. 🧰 Public Zero-Cost Browser Tools Hub (`/tools`)
+- **Dedicated Central Hub**: Public showcase of all GoMono client-side utilities (URL Shortener, QR Studio, CSV Grid, Bio Builder, Rotator, Decoder, Inspector).
+
+### 30. 🚨 Branded 404 & Link-Not-Found Recovery Screen (`src/app/not-found.tsx`)
+- **Polished Recovery Screen**: Diagnostics checklist for typos, expired links, or burned 1-time destinations with 1-click recovery actions to the shortener and tools hub.
+
 ---
 
 ## 🏛️ Architecture & Design Philosophy
@@ -267,6 +320,10 @@ Authorization: Bearer <optional-firebase-token>
   "originalUrl": "https://example.com/long-page-url",
   "customAlias": "spring-sale",
   "domain": "to.mono.bro.bd",
+  "deepLink": true,
+  "splashMessage": "Welcome to our 2026 Spring Launch!",
+  "webhookUrl": "https://discord.com/api/webhooks/123/abc",
+  "burnAfterRead": false,
   "iosUrl": "https://apps.apple.com/app/id123456789",
   "androidUrl": "https://play.google.com/store/apps/details?id=com.example",
   "ogTitle": "Exclusive Spring Sale",

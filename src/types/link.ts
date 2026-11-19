@@ -14,6 +14,7 @@ export interface CreateLinkInput {
     expiresAt?: string | Date | null;
     maxClicks?: number | string | null;
     burnAfterRead?: boolean | null;
+    isPinned?: boolean | null;
     deepLink?: boolean | null;
     splashMessage?: string | null;
     iosUrl?: string | null;
@@ -57,6 +58,8 @@ export interface Link {
     burnAfterRead?: boolean | null;
     isBurned?: boolean | null;
     burnedAt?: string | null;
+    isPinned?: boolean | null;
+    pinnedAt?: string | null;
     deepLink?: boolean | null;
     splashMessage?: string | null;
     tags?: string[];

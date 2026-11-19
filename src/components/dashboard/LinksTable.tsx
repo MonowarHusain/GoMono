@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import {
     Copy, QrCode, Trash2, ExternalLink, MousePointerClick,
     ShieldAlert, Pencil, Globe, ShieldCheck, Search, X, Smartphone, BarChart2,
-    Activity, Loader2, Flame
+    Activity, Loader2, Flame, Pin, Tag
 } from "lucide-react";
 import { notifyLinkDeleted } from "@/lib/events";
 import type { Link } from "@/types/link";
@@ -37,6 +37,30 @@ export default function LinksTable({
     const [analyticsLink, setAnalyticsLink] = useState<Link | null>(null);
     const [filter, setFilter] = useState<FilterType>("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    const [pinnedAliases, setPinnedAliases] = useState<Set<string>>(() => {
+        if (typeof window === "undefined") return new Set();
+        try {
+            const raw = localStorage.getItem("gomono_pinned_links");
+            return raw ? new Set(JSON.parse(raw)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
+    const togglePin = (alias: string) => {
+        setPinnedAliases((prev) => {
+            const next = new Set(prev);
+            if (next.has(alias)) next.delete(alias);
+            else next.add(alias);
+            try {
+                localStorage.setItem("gomono_pinned_links", JSON.stringify(Array.from(next)));
+            } catch {
+                // ignore
+            }
+            return next;
+        });
+    };
     const [healthMap, setHealthMap] = useState<Record<string, { status: number; ok: boolean; statusText: string; latencyMs: number }>>({});
     const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
@@ -109,12 +133,30 @@ export default function LinksTable({
         };
     }, [initialLinks]);
 
-    // Filter and search links
+    // Extract all unique color-tag categories across links
+    const allTags = useMemo(() => {
+        const tagSet = new Set<string>();
+        initialLinks.forEach((l) => {
+            if (Array.isArray(l.tags)) {
+                l.tags.forEach((t) => {
+                    const clean = t.trim();
+                    if (clean) tagSet.add(clean);
+                });
+            }
+        });
+        return Array.from(tagSet).sort();
+    }, [initialLinks]);
+
+    // Filter, search, and sort links (with pinned links floating to top)
     const filteredLinks = useMemo(() => {
-        return initialLinks.filter((link) => {
+        const list = initialLinks.filter((link) => {
             const isPub = isPublicLink(link);
             if (filter === "admin" && isPub) return false;
             if (filter === "public" && !isPub) return false;
+
+            if (selectedTag && (!Array.isArray(link.tags) || !link.tags.includes(selectedTag))) {
+                return false;
+            }
 
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase().trim();
@@ -125,7 +167,14 @@ export default function LinksTable({
             }
             return true;
         });
-    }, [initialLinks, filter, searchQuery]);
+
+        return list.sort((a, b) => {
+            const aPinned = pinnedAliases.has(a.alias) || Boolean(a.isPinned);
+            const bPinned = pinnedAliases.has(b.alias) || Boolean(b.isPinned);
+            if (aPinned === bPinned) return 0;
+            return aPinned ? -1 : 1;
+        });
+    }, [initialLinks, filter, searchQuery, selectedTag, pinnedAliases]);
 
     // Updated to accept the specific link object being copied
     const handleCopy = async (linkToCopy: Link) => {
@@ -268,6 +317,51 @@ export default function LinksTable({
                 </div>
             </div>
 
+            {/* Color-Coded Tag Filter Bar */}
+            {allTags.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 flex items-center gap-1 shrink-0">
+                        <Tag className="h-3 w-3" />
+                        <span>Filter Tags:</span>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTag(null)}
+                        className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition shrink-0 ${
+                            selectedTag === null
+                                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}
+                    >
+                        All ({initialLinks.length})
+                    </button>
+                    {allTags.map((tag) => {
+                        const count = initialLinks.filter((l) => Array.isArray(l.tags) && l.tags.includes(tag)).length;
+                        return (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition shrink-0 ${
+                                    selectedTag === tag
+                                        ? "bg-indigo-600 text-white shadow-sm"
+                                        : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300"
+                                }`}
+                            >
+                                <span>#{tag}</span>
+                                <span className={`rounded-full px-1 text-[9px] ${
+                                    selectedTag === tag
+                                        ? "bg-white/20 text-white"
+                                        : "bg-indigo-200/60 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200"
+                                }`}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Table or Empty State */}
             {initialLinks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl bg-white shadow-sm dark:bg-neutral-900/50">
@@ -308,21 +402,41 @@ export default function LinksTable({
                                 {filteredLinks.map((link) => {
                                     const isPub = isPublicLink(link);
                                     const isNew = link.alias === newestAlias;
+                                    const isPinned = pinnedAliases.has(link.alias) || Boolean(link.isPinned);
                                     return (
                                         <tr
                                             key={link.alias}
                                             className={`group transition-all duration-500 ${
                                                 isNew
                                                     ? "bg-emerald-500/10 dark:bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/40"
+                                                    : isPinned
+                                                    ? "bg-amber-500/5 dark:bg-amber-500/10 hover:bg-amber-500/10"
                                                     : "hover:bg-slate-50 dark:hover:bg-neutral-800/30"
                                             }`}
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => togglePin(link.alias)}
+                                                        className={`rounded-md p-1 transition ${
+                                                            isPinned
+                                                                ? "text-amber-500 bg-amber-500/15 hover:bg-amber-500/25"
+                                                                : "text-neutral-300 hover:text-amber-500 dark:text-neutral-600 dark:hover:text-amber-400"
+                                                        }`}
+                                                        title={isPinned ? "Unpin link" : "Pin link to top"}
+                                                    >
+                                                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "rotate-45 fill-amber-500 text-amber-500" : ""}`} />
+                                                    </button>
                                                     <span className="font-semibold text-slate-900 dark:text-white">/{link.alias}</span>
                                                     {isNew && (
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-pulse">
                                                             NEW
+                                                        </span>
+                                                    )}
+                                                    {isPinned && (
+                                                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.2 text-[9px] font-bold text-amber-700 dark:text-amber-300 uppercase">
+                                                            Pinned
                                                         </span>
                                                     )}
                                                     {link.isProtected && (
@@ -361,13 +475,23 @@ export default function LinksTable({
                                                     )}
                                                 </div>
 
-                                                {/* Tag Pills */}
+                                                {/* Tag Pills (Clickable Category Filters) */}
                                                 {link.tags && link.tags.length > 0 && (
                                                     <div className="flex flex-wrap gap-1 mt-2">
                                                         {link.tags.map((tag) => (
-                                                            <span key={tag} className="rounded-md border border-slate-300/50 dark:border-neutral-700/50 bg-slate-100 dark:bg-neutral-800/50 px-2 py-0.5 text-[10px] text-slate-500 dark:text-neutral-400">
+                                                            <button
+                                                                key={tag}
+                                                                type="button"
+                                                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                                                className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition ${
+                                                                    selectedTag === tag
+                                                                        ? "bg-indigo-600 text-white shadow-xs"
+                                                                        : "border border-indigo-200/50 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+                                                                }`}
+                                                                title={`Filter by #${tag}`}
+                                                            >
                                                                 #{tag}
-                                                            </span>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 )}

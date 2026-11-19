@@ -14,6 +14,7 @@ import {
     Sparkles,
     ShieldCheck,
     Flame,
+    Pin,
 } from "lucide-react";
 import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ export default function LocalVaultDrawer({
     const handleClose = isControlled ? (controlledOnClose || (() => {})) : () => setInternalIsOpen(false);
     const handleOpen = () => setInternalIsOpen(true);
 
-    const { links, isLoaded, removeLink, clearVault, count } = useLocalLinkVault();
+    const { links, isLoaded, togglePin, removeLink, clearVault, count } = useLocalLinkVault();
 
     const handleCopy = async (shortUrl: string, alias: string) => {
         try {
@@ -184,6 +185,12 @@ export default function LocalVaultDrawer({
                                                         <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">
                                                             /{link.alias}
                                                         </span>
+                                                        {link.isPinned && (
+                                                            <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                                                <Pin className="h-2.5 w-2.5 rotate-45" />
+                                                                <span>Pinned</span>
+                                                            </span>
+                                                        )}
                                                         {link.burnAfterRead && (
                                                             <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 dark:text-rose-400">
                                                                 <Flame className="h-2.5 w-2.5" />
@@ -249,15 +256,31 @@ export default function LocalVaultDrawer({
                                                         </a>
                                                     </div>
 
-                                                    {/* Delete single link */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemove(link.alias)}
-                                                        className="rounded-lg p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
-                                                        title="Remove from device vault"
-                                                    >
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </button>
+                                                    <div className="flex items-center gap-1">
+                                                        {/* Pin / Star Toggle */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => togglePin(link.alias)}
+                                                            className={`rounded-lg p-1 transition ${
+                                                                link.isPinned
+                                                                    ? "text-amber-500 bg-amber-50 dark:bg-amber-950/40"
+                                                                    : "text-zinc-400 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                            }`}
+                                                            title={link.isPinned ? "Unpin link" : "Pin to top of vault"}
+                                                        >
+                                                            <Pin className={`h-3 w-3 ${link.isPinned ? "rotate-45 fill-amber-500" : ""}`} />
+                                                        </button>
+
+                                                        {/* Delete single link */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemove(link.alias)}
+                                                            className="rounded-lg p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                                                            title="Remove from device vault"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

@@ -10,6 +10,8 @@ export interface VaultLink {
     domain?: string;
     burnAfterRead?: boolean;
     isBurned?: boolean;
+    isPinned?: boolean;
+    tag?: string;
 }
 
 const STORAGE_KEY = "gomono_local_vault";
@@ -88,17 +90,44 @@ export function useLocalLinkVault() {
     // Add or update a link in the vault
     const saveLink = useCallback(
         (link: Omit<VaultLink, "createdAt"> & { createdAt?: string }) => {
+            const current = getSnapshot();
+            const existing = current.find((item) => item.alias === link.alias);
+
             const newItem: VaultLink = {
                 alias: link.alias,
                 shortUrl: link.shortUrl,
                 originalUrl: link.originalUrl,
                 domain: link.domain,
+                burnAfterRead: link.burnAfterRead ?? existing?.burnAfterRead,
+                isBurned: link.isBurned ?? existing?.isBurned,
+                isPinned: link.isPinned ?? existing?.isPinned ?? false,
+                tag: link.tag ?? existing?.tag,
                 createdAt: link.createdAt || new Date().toISOString(),
             };
 
-            const current = getSnapshot();
             const filtered = current.filter((item) => item.alias !== newItem.alias);
             const nextList = [newItem, ...filtered].slice(0, MAX_VAULT_ITEMS);
+            // Sort pinned links to top
+            nextList.sort((a, b) => {
+                if (Boolean(a.isPinned) === Boolean(b.isPinned)) return 0;
+                return a.isPinned ? -1 : 1;
+            });
+            commitToStorage(nextList);
+        },
+        [commitToStorage]
+    );
+
+    // Toggle pinned status of a link
+    const togglePin = useCallback(
+        (alias: string) => {
+            const current = getSnapshot();
+            const nextList = current.map((item) =>
+                item.alias === alias ? { ...item, isPinned: !item.isPinned } : item
+            );
+            nextList.sort((a, b) => {
+                if (Boolean(a.isPinned) === Boolean(b.isPinned)) return 0;
+                return a.isPinned ? -1 : 1;
+            });
             commitToStorage(nextList);
         },
         [commitToStorage]
@@ -130,6 +159,7 @@ export function useLocalLinkVault() {
         links,
         isLoaded: true,
         saveLink,
+        togglePin,
         removeLink,
         clearVault,
         count: links.length,

@@ -3,6 +3,7 @@ import { headers, cookies } from "next/headers";
 import { adminDb } from "@/lib/firebaseAdmin"; // Adjust this if your path is different
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
+import { detectTrafficType } from "@/lib/bot-detector";
 import PasswordGate from "@/components/public/PasswordGate";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
 
@@ -116,42 +117,48 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         destinationUrl = data.androidUrl.trim();
     }
 
-    // 8. Atomic Click Analytics Recording & Metadata Event Logging
-    try {
-        const deviceKey = sanitizeFieldKey(parsedUa.device);
-        const browserKey = sanitizeFieldKey(parsedUa.browser);
-        const osKey = sanitizeFieldKey(parsedUa.os);
+    // 8. Atomic Click Analytics Recording & Metadata Event Logging (Human Visitors Only)
+    const trafficInfo = detectTrafficType(userAgent);
 
-        await Promise.all([
-            // 8a. Atomic aggregated counters on link doc for O(1) instantaneous analytics reads
-            linkRef.update({
-                totalClicks: FieldValue.increment(1),
-                [`devices.${deviceKey}`]: FieldValue.increment(1),
-                [`browsers.${browserKey}`]: FieldValue.increment(1),
-                [`os.${osKey}`]: FieldValue.increment(1),
-                lastClickedAt: FieldValue.serverTimestamp(),
-            }),
-            // 8b. Fine-grained historical click audit log in subcollection
-            linkRef.collection("clicks").add({
-                timestamp: FieldValue.serverTimestamp(),
-                userAgent: userAgent.slice(0, 500),
-                device: parsedUa.device,
-                browser: parsedUa.browser,
-                os: parsedUa.os,
-                targetUrl: destinationUrl,
-                referer: referer ? referer.slice(0, 500) : null,
-            }),
-        ]);
-    } catch (trackingErr) {
-        // High-availability: Do not block visitor redirect if metrics write encounters an error
-        console.error("Error recording link click analytics:", trackingErr);
+    // Bot Shield: Skip Firestore writes for search crawlers, social scrapers, and automated scripts
+    // This preserves free-tier quotas while still smoothly redirecting the visitor/bot
+    if (!trafficInfo.isBot) {
         try {
-            // Fallback: at least increment basic totalClicks counter
-            await linkRef.update({
-                totalClicks: FieldValue.increment(1),
-            });
-        } catch {
-            // Ignore secondary fallback error
+            const deviceKey = sanitizeFieldKey(parsedUa.device);
+            const browserKey = sanitizeFieldKey(parsedUa.browser);
+            const osKey = sanitizeFieldKey(parsedUa.os);
+
+            await Promise.all([
+                // 8a. Atomic aggregated counters on link doc for O(1) instantaneous analytics reads
+                linkRef.update({
+                    totalClicks: FieldValue.increment(1),
+                    [`devices.${deviceKey}`]: FieldValue.increment(1),
+                    [`browsers.${browserKey}`]: FieldValue.increment(1),
+                    [`os.${osKey}`]: FieldValue.increment(1),
+                    lastClickedAt: FieldValue.serverTimestamp(),
+                }),
+                // 8b. Fine-grained historical click audit log in subcollection
+                linkRef.collection("clicks").add({
+                    timestamp: FieldValue.serverTimestamp(),
+                    userAgent: userAgent.slice(0, 500),
+                    device: parsedUa.device,
+                    browser: parsedUa.browser,
+                    os: parsedUa.os,
+                    targetUrl: destinationUrl,
+                    referer: referer ? referer.slice(0, 500) : null,
+                }),
+            ]);
+        } catch (trackingErr) {
+            // High-availability: Do not block visitor redirect if metrics write encounters an error
+            console.error("Error recording link click analytics:", trackingErr);
+            try {
+                // Fallback: at least increment basic totalClicks counter
+                await linkRef.update({
+                    totalClicks: FieldValue.increment(1),
+                });
+            } catch {
+                // Ignore secondary fallback error
+            }
         }
     }
 

@@ -27,13 +27,16 @@ import {
     FileSpreadsheet,
     History,
     Share2,
+    Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import BulkShortenerModal from "@/components/dashboard/BulkShortenerModal";
 import QrStudioModal from "@/components/qr/QrStudio";
 import LocalVaultDrawer from "@/components/LocalVaultDrawer";
+import UtmBuilderAccordion from "@/components/UtmBuilderAccordion";
 import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
+import { parseUtmUrl } from "@/lib/utm-builder";
 import { notifyLinkCreated } from "@/lib/events";
 
 interface ShortenResult {
@@ -58,6 +61,7 @@ export default function PublicShortener() {
     const [isSecurityOpen, setIsSecurityOpen] = useState(false);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
     const [isOgOpen, setIsOgOpen] = useState(false);
+    const [isUtmOpen, setIsUtmOpen] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [isDomainOpen, setIsDomainOpen] = useState(false);
     const [showQrDrawer, setShowQrDrawer] = useState(false);
@@ -97,6 +101,7 @@ export default function PublicShortener() {
         setIsSecurityOpen(false);
         setIsAdvancedOpen(false);
         setIsOgOpen(false);
+        setIsUtmOpen(false);
         setShowPassword(false);
         setShowQrDrawer(false);
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -287,6 +292,7 @@ export default function PublicShortener() {
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
+    const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
 
     return (
         <div className="w-full max-w-2xl px-2 sm:px-0">
@@ -438,6 +444,25 @@ export default function PublicShortener() {
                                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
                                     )}
                                     <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isOgOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* UTM Campaign Studio Accordion Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUtmOpen(!isUtmOpen)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${
+                                        isUtmOpen || hasUtmOptions
+                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                            : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    }`}
+                                    title="Add UTM Campaign Parameters"
+                                >
+                                    <Tag className="h-3 w-3" />
+                                    <span>UTM</span>
+                                    {hasUtmOptions && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+                                    )}
+                                    <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isUtmOpen ? "rotate-180" : ""}`} />
                                 </button>
                             </div>
 
@@ -710,6 +735,15 @@ export default function PublicShortener() {
                                     </div>
                                 </div>
                             </div>
+                        )}
+
+                        {/* COMPANION COLLAPSIBLE "UTM CAMPAIGN STUDIO" DRAWER */}
+                        {isUtmOpen && (
+                            <UtmBuilderAccordion
+                                originalUrl={originalUrl}
+                                onUrlChange={setOriginalUrl}
+                                onClose={() => setIsUtmOpen(false)}
+                            />
                         )}
                     </div>
                 </div>

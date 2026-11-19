@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { type Link } from "./LinksTable";
-import { type LinkAnalyticsData, type ClickLog } from "@/app/api/analytics/route";
+import { type LinkAnalyticsData } from "@/app/api/analytics/route";
+import AnalyticsSparkCharts from "@/components/AnalyticsSparkCharts";
+import { summarizeAnalytics, generateAnalyticsCsv } from "@/lib/analytics-aggregator";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
@@ -162,6 +164,11 @@ export default function LinkAnalyticsModal({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onClose]);
 
+    // Full summary metrics including sparkline & peak hourly buckets
+    const summary = useMemo(() => {
+        return analytics ? summarizeAnalytics(analytics) : null;
+    }, [analytics]);
+
     // Derived metric computations
     const { topDevice, topBrowser, devicePercents, topBrowsersList, topOsList } = useMemo(() => {
         if (!analytics) {
@@ -243,33 +250,22 @@ export default function LinkAnalyticsModal({
     };
 
     const handleExportCsv = () => {
-        if (!analytics || analytics.recentClicks.length === 0) {
-            toast.error("No click data available to export");
+        if (!analytics) {
+            toast.error("No analytics data available to export");
             return;
         }
 
-        const headers = ["Timestamp", "Device", "Browser", "OS", "Target Redirect URL", "Referer", "User Agent"];
-        const rows = analytics.recentClicks.map((c: ClickLog) => [
-            `"${c.timestamp}"`,
-            `"${c.device}"`,
-            `"${c.browser}"`,
-            `"${c.os}"`,
-            `"${(c.targetUrl || "").replace(/"/g, '""')}"`,
-            `"${(c.referer || "").replace(/"/g, '""')}"`,
-            `"${(c.userAgent || "").replace(/"/g, '""')}"`,
-        ]);
-
-        const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        const csvContent = generateAnalyticsCsv(analytics);
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.setAttribute("download", `${analytics.alias}_traffic_analytics.csv`);
+        anchor.setAttribute("download", `GoMono_${analytics.alias}_analytics_report.csv`);
         document.body.appendChild(anchor);
         anchor.click();
         document.body.removeChild(anchor);
         URL.revokeObjectURL(url);
-        toast.success("Activity CSV exported successfully!");
+        toast.success("Comprehensive Analytics CSV exported!");
     };
 
     if (!isOpen || !link) return null;
@@ -423,6 +419,15 @@ export default function LinkAnalyticsModal({
                                     </p>
                                 </div>
                             </div>
+
+                            {/* 1b. Trailing Trend Sparkline & Peak Hour Bar Chart */}
+                            {summary && (
+                                <AnalyticsSparkCharts
+                                    dailyTrend={summary.dailyTrend}
+                                    hourlyDistribution={summary.hourlyDistribution}
+                                    peakHour={summary.peakHour}
+                                />
+                            )}
 
                             {/* 2. Breakdown Visualizations (Devices, Browsers, OS) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

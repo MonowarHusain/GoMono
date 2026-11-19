@@ -191,6 +191,45 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         }
     }
 
-    // 9. Execute the device-smart routing redirect!
+    // 9. OpenGraph Cloaking for Social Preview Crawlers (WhatsApp, Discord, Twitter, Facebook, etc.)
+    const hasCustomOg = Boolean(data.ogTitle || data.ogDescription || data.ogImage);
+    if (trafficInfo.isSocialPreview && hasCustomOg) {
+        const ogTitle = data.ogTitle || data.alias;
+        const ogDescription = data.ogDescription || `Click to view /${data.alias}`;
+        const ogImage = data.ogImage || null;
+
+        return (
+            <html lang="en">
+                <head>
+                    <meta charSet="utf-8" />
+                    <title>{ogTitle}</title>
+                    <meta name="description" content={ogDescription} />
+
+                    {/* OpenGraph / Facebook / WhatsApp / Discord */}
+                    <meta property="og:type" content="website" />
+                    <meta property="og:url" content={destinationUrl} />
+                    <meta property="og:title" content={ogTitle} />
+                    <meta property="og:description" content={ogDescription} />
+                    {ogImage && <meta property="og:image" content={ogImage} />}
+
+                    {/* Twitter / X Cards */}
+                    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+                    <meta name="twitter:title" content={ogTitle} />
+                    <meta name="twitter:description" content={ogDescription} />
+                    {ogImage && <meta name="twitter:image" content={ogImage} />}
+
+                    {/* Meta refresh fallback if interactive browser simulates bot UA */}
+                    <meta httpEquiv="refresh" content={`0;url=${destinationUrl}`} />
+                </head>
+                <body className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 font-sans p-6 text-center">
+                    <p className="text-sm">
+                        Redirecting to <a href={destinationUrl} className="underline text-indigo-600">{destinationUrl}</a>...
+                    </p>
+                </body>
+            </html>
+        );
+    }
+
+    // 10. Execute the device-smart routing redirect!
     redirect(destinationUrl);
 }

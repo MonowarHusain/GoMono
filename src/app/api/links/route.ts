@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -81,6 +81,15 @@ export async function POST(req: Request) {
                 cleanAndroid = `https://${cleanAndroid}`;
             }
             formattedAndroidUrl = cleanAndroid;
+        }
+
+        // Optional OpenGraph Cloaking Metadata for Social Scrapers
+        const cleanOgTitle = typeof ogTitle === "string" && ogTitle.trim() ? ogTitle.trim().slice(0, 200) : null;
+        const cleanOgDescription = typeof ogDescription === "string" && ogDescription.trim() ? ogDescription.trim().slice(0, 500) : null;
+        let cleanOgImage: string | null = null;
+        if (typeof ogImage === "string" && ogImage.trim()) {
+            const rawImg = ogImage.trim();
+            cleanOgImage = /^https?:\/\//i.test(rawImg) ? rawImg : `https://${rawImg}`;
         }
 
         // Process Security Options: Expiration Date, Max Clicks, Password
@@ -139,6 +148,9 @@ export async function POST(req: Request) {
             originalUrl: formattedUrl,
             iosUrl: formattedIosUrl,
             androidUrl: formattedAndroidUrl,
+            ogTitle: cleanOgTitle,
+            ogDescription: cleanOgDescription,
+            ogImage: cleanOgImage,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),
@@ -231,6 +243,9 @@ export async function GET(req: Request) {
                 originalUrl: data.originalUrl,
                 iosUrl: data.iosUrl || null,
                 androidUrl: data.androidUrl || null,
+                ogTitle: data.ogTitle || null,
+                ogDescription: data.ogDescription || null,
+                ogImage: data.ogImage || null,
                 domain: data.domain,
                 isProtected: data.isProtected || false,
                 password: data.password || null,

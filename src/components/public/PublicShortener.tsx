@@ -26,6 +26,7 @@ import {
     EyeOff,
     FileSpreadsheet,
     History,
+    Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -56,6 +57,7 @@ export default function PublicShortener() {
     const [studioUrl, setStudioUrl] = useState("");
     const [isSecurityOpen, setIsSecurityOpen] = useState(false);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+    const [isOgOpen, setIsOgOpen] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [isDomainOpen, setIsDomainOpen] = useState(false);
     const [showQrDrawer, setShowQrDrawer] = useState(false);
@@ -69,6 +71,9 @@ export default function PublicShortener() {
     const [password, setPassword] = useState("");
     const [iosUrl, setIosUrl] = useState("");
     const [androidUrl, setAndroidUrl] = useState("");
+    const [ogTitle, setOgTitle] = useState("");
+    const [ogDescription, setOgDescription] = useState("");
+    const [ogImage, setOgImage] = useState("");
 
     // Result & feedback state
     const [result, setResult] = useState<ShortenResult | null>(null);
@@ -86,8 +91,12 @@ export default function PublicShortener() {
         setPassword("");
         setIosUrl("");
         setAndroidUrl("");
+        setOgTitle("");
+        setOgDescription("");
+        setOgImage("");
         setIsSecurityOpen(false);
         setIsAdvancedOpen(false);
+        setIsOgOpen(false);
         setShowPassword(false);
         setShowQrDrawer(false);
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -150,6 +159,9 @@ export default function PublicShortener() {
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
                 expiresAt: expiresAt || undefined,
                 password: password.trim() || undefined,
+                ogTitle: ogTitle.trim() || undefined,
+                ogDescription: ogDescription.trim() || undefined,
+                ogImage: ogImage.trim() || undefined,
                 creatorType: "public" as const,
                 userId: null,
                 isAdminOnly: false,
@@ -274,6 +286,7 @@ export default function PublicShortener() {
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl);
+    const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
 
     return (
         <div className="w-full max-w-2xl px-2 sm:px-0">
@@ -406,6 +419,25 @@ export default function PublicShortener() {
                                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
                                     )}
                                     <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* Social Preview OpenGraph Accordion Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsOgOpen(!isOgOpen)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${
+                                        isOgOpen || hasOgOptions
+                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                            : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    }`}
+                                >
+                                    <Share2 className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Social Cards</span>
+                                    <span className="sm:hidden">OG</span>
+                                    {hasOgOptions && (
+                                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+                                    )}
+                                    <ChevronDown className={`h-3 w-3 text-zinc-400 transition-transform duration-200 ${isOgOpen ? "rotate-180" : ""}`} />
                                 </button>
                             </div>
 
@@ -622,6 +654,58 @@ export default function PublicShortener() {
                                             onChange={(e) => setAndroidUrl(e.target.value)}
                                             placeholder="Android URL (Play Store / deep link)"
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-emerald-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-emerald-500/50"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMPANION COLLAPSIBLE "SOCIAL PREVIEWS (OG)" SECTION */}
+                        {isOgOpen && (
+                            <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/40 p-3.5 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="mb-2.5 flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                        Social OpenGraph Meta Tags (WhatsApp, Discord, X)
+                                    </span>
+                                </div>
+
+                                <div className="space-y-2.5">
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                                            Custom Social Card Title
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={ogTitle}
+                                            onChange={(e) => setOgTitle(e.target.value)}
+                                            placeholder="e.g. Special Product Showcase"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                                            Social Description
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={ogDescription}
+                                            onChange={(e) => setOgDescription(e.target.value)}
+                                            placeholder="e.g. Discover our fastest edge-accelerated link platform..."
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                                            Social Banner Image URL
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={ogImage}
+                                            onChange={(e) => setOgImage(e.target.value)}
+                                            placeholder="e.g. https://yourdomain.com/banner.png"
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 font-mono text-[11px]"
                                         />
                                     </div>
                                 </div>

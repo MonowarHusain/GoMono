@@ -13,6 +13,9 @@ export interface CreateLinkInput {
     maxClicks?: number | string | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
+    ogTitle?: string | null;
+    ogDescription?: string | null;
+    ogImage?: string | null;
     creatorType?: "admin" | "public";
     userId?: string | null;
     isAdminOnly?: boolean;
@@ -30,6 +33,9 @@ export interface Link {
     originalUrl: string;
     iosUrl?: string | null;
     androidUrl?: string | null;
+    ogTitle?: string | null;
+    ogDescription?: string | null;
+    ogImage?: string | null;
     domain?: string;
     totalClicks: number;
     createdAt: string;

@@ -3,6 +3,7 @@ import { Zap, ArrowRight, Lock, Flame, Shield, Activity, Sparkles, Terminal, QrC
 import PublicShortener from "@/components/public/PublicShortener";
 import { ThemeToggle } from "@/components/ui/ThemeProvider";
 import LocalVaultDrawer from "@/components/LocalVaultDrawer";
+import BookmarkletButton from "@/components/BookmarkletButton";
 
 export default function LandingPage() {
   return (
@@ -108,14 +109,18 @@ export default function LandingPage() {
           <PublicShortener />
         </div>
 
-        {/* Keyboard hint */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-zinc-500">
-          <span className="inline-flex items-center gap-1 font-mono">
-            <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 font-semibold">/</kbd>
-            <span>focus input</span>
-          </span>
-          <span>•</span>
-          <span>50 URLs batch limit</span>
+        {/* Keyboard hint & Draggable Bookmarklet Tool */}
+        <div className="mt-4 flex flex-col items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-zinc-500">
+            <span className="inline-flex items-center gap-1 font-mono">
+              <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 font-semibold">/</kbd>
+              <span>focus input</span>
+            </span>
+            <span>•</span>
+            <span>50 URLs batch limit</span>
+          </div>
+
+          <BookmarkletButton />
         </div>
 
         {/* Feature Bento Grid (Vercel / Linear inspired) */}

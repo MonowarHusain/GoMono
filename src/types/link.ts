@@ -15,6 +15,7 @@ export interface CreateLinkInput {
     maxClicks?: number | string | null;
     burnAfterRead?: boolean | null;
     deepLink?: boolean | null;
+    splashMessage?: string | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
     ogTitle?: string | null;
@@ -57,6 +58,7 @@ export interface Link {
     isBurned?: boolean | null;
     burnedAt?: string | null;
     deepLink?: boolean | null;
+    splashMessage?: string | null;
     tags?: string[];
     isPublic?: boolean;
     createdBy?: string;
@@ -77,6 +79,7 @@ export interface LinkValidationResult {
         expiresAt?: Date | null;
         maxClicks?: number | null;
         tags?: string[];
+        splashMessage?: string | null;
         iosUrl?: string | null;
         androidUrl?: string | null;
     };

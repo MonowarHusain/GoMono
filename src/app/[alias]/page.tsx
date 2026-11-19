@@ -12,6 +12,7 @@ import { hashPasswordSync } from "@/lib/link-password";
 import PasswordGateCard from "@/components/PasswordGateCard";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
 import LinkScheduleNotice from "@/components/LinkScheduleNotice";
+import RedirectSplashScreen from "@/components/RedirectSplashScreen";
 import LinkInspectorCard, { type LinkInspectorData } from "@/components/LinkInspectorCard";
 
 interface PageProps {
@@ -301,6 +302,18 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
         );
     }
 
-    // 10. Execute the device-smart routing redirect!
+    // 10. Optional Branded Redirect Splash Interstitial Screen (Human Visitors Only)
+    if (data.splashMessage && !trafficInfo.isBot && !trafficInfo.isSocialPreview) {
+        return (
+            <RedirectSplashScreen
+                alias={alias}
+                destinationUrl={destinationUrl}
+                message={data.splashMessage}
+                domain={data.domain || "to.mono.bro.bd"}
+            />
+        );
+    }
+
+    // 11. Execute the device-smart routing redirect!
     redirect(destinationUrl);
 }

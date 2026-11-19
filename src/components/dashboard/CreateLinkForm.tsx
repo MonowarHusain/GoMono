@@ -91,11 +91,13 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             const rawPassword = formData.get("password") as string | null;
             const rawIosUrl = (formData.get("iosUrl") as string | null)?.trim() || null;
             const rawAndroidUrl = (formData.get("androidUrl") as string | null)?.trim() || null;
+            const rawSplashMessage = (formData.get("splashMessage") as string | null)?.trim() || null;
 
             const data = {
                 originalUrl: finalOriginalUrl,
                 iosUrl: rawIosUrl || undefined,
                 androidUrl: rawAndroidUrl || undefined,
+                splashMessage: rawSplashMessage || undefined,
                 customAlias: formData.get("customAlias"),
                 domain: selectedDomain,
                 tags: rawTags,
@@ -482,6 +484,21 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                         }`}
                                     />
                                 </button>
+                            </div>
+
+                            {/* Custom 3-Second Splash Screen Message */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                                    <span>Custom 3-Second Splash Message (Optional)</span>
+                                </label>
+                                <input
+                                    name="splashMessage"
+                                    type="text"
+                                    placeholder="e.g. Redirecting to our official 2025 launch announcement..."
+                                    maxLength={250}
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                />
                             </div>
                         </div>
                     )}

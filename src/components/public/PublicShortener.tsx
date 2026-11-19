@@ -91,6 +91,7 @@ export default function PublicShortener() {
     const [iosUrl, setIosUrl] = useState("");
     const [androidUrl, setAndroidUrl] = useState("");
     const [deepLink, setDeepLink] = useState(false);
+    const [splashMessage, setSplashMessage] = useState("");
     const [variantBUrl, setVariantBUrl] = useState("");
     const [splitWeight, setSplitWeight] = useState(50);
     const [localeRules, setLocaleRules] = useState<Record<string, string>>({});
@@ -121,6 +122,8 @@ export default function PublicShortener() {
         setScheduleEndHour("");
         setIosUrl("");
         setAndroidUrl("");
+        setDeepLink(false);
+        setSplashMessage("");
         setVariantBUrl("");
         setSplitWeight(50);
         setLocaleRules({});
@@ -214,6 +217,7 @@ export default function PublicShortener() {
                 iosUrl: iosUrl.trim() || undefined,
                 androidUrl: androidUrl.trim() || undefined,
                 deepLink: deepLink || undefined,
+                splashMessage: splashMessage.trim() || undefined,
                 customAlias: customAlias.trim() || undefined,
                 domain: selectedDomain,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
@@ -361,7 +365,7 @@ export default function PublicShortener() {
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || burnAfterRead || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
-    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || deepLink || variantBUrl || Object.keys(localeRules).length > 0);
+    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || deepLink || splashMessage || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
 
@@ -847,6 +851,8 @@ export default function PublicShortener() {
                                                 setCustomAlias("");
                                                 setIosUrl("");
                                                 setAndroidUrl("");
+                                                setDeepLink(false);
+                                                setSplashMessage("");
                                                 setVariantBUrl("");
                                                 setSplitWeight(50);
                                                 setLocaleRules({});
@@ -946,6 +952,22 @@ export default function PublicShortener() {
                                             }`}
                                         />
                                     </button>
+                                </div>
+
+                                {/* Custom Redirect Splash Screen Option */}
+                                <div className="mt-2.5 space-y-1">
+                                    <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                                        <Sparkles className="h-3 w-3 text-indigo-500" />
+                                        <span>Custom 3-Second Splash Screen Message (Optional)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={splashMessage}
+                                        onChange={(e) => setSplashMessage(e.target.value)}
+                                        placeholder="e.g. Redirecting to our official 2025 product launch page..."
+                                        maxLength={250}
+                                        className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-indigo-500 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/50"
+                                    />
                                 </div>
 
                                 {/* A/B Split Testing Traffic Section */}

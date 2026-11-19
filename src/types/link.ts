@@ -16,6 +16,7 @@ export interface CreateLinkInput {
     burnAfterRead?: boolean | null;
     isPinned?: boolean | null;
     deepLink?: boolean | null;
+    webhookUrl?: string | null;
     splashMessage?: string | null;
     iosUrl?: string | null;
     androidUrl?: string | null;
@@ -62,6 +63,7 @@ export interface Link {
     pinnedAt?: string | null;
     deepLink?: boolean | null;
     splashMessage?: string | null;
+    webhookUrl?: string | null;
     tags?: string[];
     isPublic?: boolean;
     createdBy?: string;
@@ -83,6 +85,7 @@ export interface LinkValidationResult {
         maxClicks?: number | null;
         tags?: string[];
         splashMessage?: string | null;
+        webhookUrl?: string | null;
         iosUrl?: string | null;
         androidUrl?: string | null;
     };

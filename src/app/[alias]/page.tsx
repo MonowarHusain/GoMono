@@ -8,6 +8,7 @@ import { resolveRotatorDestination } from "@/lib/ab-router";
 import { resolveLocaleDestination } from "@/lib/locale-router";
 import { evaluateLinkSchedule } from "@/lib/schedule-evaluator";
 import { resolveDeepLink } from "@/lib/deep-link-mapper";
+import { dispatchClickWebhook } from "@/lib/webhook-notifier";
 import { hashPasswordSync } from "@/lib/link-password";
 import PasswordGateCard from "@/components/PasswordGateCard";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
@@ -260,6 +261,20 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
             } catch {
                 // Ignore secondary fallback error
             }
+        }
+
+        // 8c. Fire-and-Forget Webhook Alert (Discord, Slack, or HTTP ping)
+        if (data.webhookUrl) {
+            dispatchClickWebhook(data.webhookUrl, {
+                alias,
+                targetUrl: destinationUrl,
+                domain: data.domain,
+                device: parsedUa.device,
+                browser: parsedUa.browser,
+                os: parsedUa.os,
+                referer: referer || null,
+                totalClicks: (totalClicks || 0) + 1,
+            }).catch(() => {});
         }
     }
 

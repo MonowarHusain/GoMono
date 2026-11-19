@@ -33,6 +33,7 @@ import {
     Trash2,
     ShieldCheck,
     Dices,
+    Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -92,6 +93,7 @@ export default function PublicShortener() {
     const [androidUrl, setAndroidUrl] = useState("");
     const [deepLink, setDeepLink] = useState(false);
     const [splashMessage, setSplashMessage] = useState("");
+    const [webhookUrl, setWebhookUrl] = useState("");
     const [variantBUrl, setVariantBUrl] = useState("");
     const [extraRotatorUrls, setExtraRotatorUrls] = useState<string[]>([]);
     const [splitWeight, setSplitWeight] = useState(50);
@@ -125,6 +127,7 @@ export default function PublicShortener() {
         setAndroidUrl("");
         setDeepLink(false);
         setSplashMessage("");
+        setWebhookUrl("");
         setVariantBUrl("");
         setExtraRotatorUrls([]);
         setSplitWeight(50);
@@ -220,6 +223,7 @@ export default function PublicShortener() {
                 androidUrl: androidUrl.trim() || undefined,
                 deepLink: deepLink || undefined,
                 splashMessage: splashMessage.trim() || undefined,
+                webhookUrl: webhookUrl.trim() || undefined,
                 customAlias: customAlias.trim() || undefined,
                 domain: selectedDomain,
                 maxClicks: maxClicks ? parseInt(maxClicks, 10) : undefined,
@@ -372,7 +376,7 @@ export default function PublicShortener() {
     };
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
-    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || burnAfterRead || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
+    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || burnAfterRead || webhookUrl || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || deepLink || splashMessage || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
@@ -840,6 +844,21 @@ export default function PublicShortener() {
                                                 />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Discord / Slack Click Alert Webhook */}
+                                    <div className="mt-3 border-t border-zinc-200/60 pt-3 dark:border-zinc-800/60 space-y-1">
+                                        <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                                            <Bell className="h-3 w-3 text-indigo-500" />
+                                            <span>Discord / Slack Click Alert Webhook (Optional)</span>
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={webhookUrl}
+                                            onChange={(e) => setWebhookUrl(e.target.value)}
+                                            placeholder="https://discord.com/api/webhooks/... or https://hooks.slack.com/services/..."
+                                            className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none focus:border-indigo-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                        />
                                     </div>
                                 </div>
                             </div>

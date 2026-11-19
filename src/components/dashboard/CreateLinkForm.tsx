@@ -5,7 +5,7 @@ import {
     Link2, Sparkles, Tag, Flame, Clock, Lock, Shield,
     ChevronDown, ChevronUp, Share2, Navigation,
     Megaphone, Search, LayoutTemplate, Copy, Check, Download, Globe, Smartphone, QrCode,
-    ShieldCheck, Dices, SlidersHorizontal
+    ShieldCheck, Dices, SlidersHorizontal, Bell
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
@@ -92,6 +92,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
             const rawIosUrl = (formData.get("iosUrl") as string | null)?.trim() || null;
             const rawAndroidUrl = (formData.get("androidUrl") as string | null)?.trim() || null;
             const rawSplashMessage = (formData.get("splashMessage") as string | null)?.trim() || null;
+            const rawWebhookUrl = (formData.get("webhookUrl") as string | null)?.trim() || null;
             const rawRotator = (formData.get("rotatorUrls") as string | null)?.trim() || null;
 
             let abVariants = undefined;
@@ -112,6 +113,7 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                 iosUrl: rawIosUrl || undefined,
                 androidUrl: rawAndroidUrl || undefined,
                 splashMessage: rawSplashMessage || undefined,
+                webhookUrl: rawWebhookUrl || undefined,
                 abVariants,
                 customAlias: formData.get("customAlias"),
                 domain: selectedDomain,
@@ -526,6 +528,20 @@ export default function CreateLinkForm({ onLinkCreated }: { onLinkCreated?: (new
                                     name="rotatorUrls"
                                     type="text"
                                     placeholder="Extra pool URLs separated by commas or newlines (rotates visits)"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Discord / Slack Click Alert Webhook */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                                    <Bell className="h-3.5 w-3.5 text-indigo-500" />
+                                    <span>Discord / Slack Click Alert Webhook (Optional)</span>
+                                </label>
+                                <input
+                                    name="webhookUrl"
+                                    type="url"
+                                    placeholder="https://discord.com/api/webhooks/... or https://hooks.slack.com/services/..."
                                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm outline-none transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
                                 />
                             </div>

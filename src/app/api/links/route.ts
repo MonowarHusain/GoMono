@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, burnAfterRead, deepLink, splashMessage, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, burnAfterRead, deepLink, splashMessage, webhookUrl, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -86,6 +86,9 @@ export async function POST(req: Request) {
 
         // Optional Splash Interstitial Screen Announcement Message
         const cleanSplashMessage = typeof splashMessage === "string" && splashMessage.trim() ? splashMessage.trim().slice(0, 300) : null;
+
+        // Optional Discord / Slack Click Alert Webhook URL
+        const cleanWebhookUrl = typeof webhookUrl === "string" && /^https?:\/\//i.test(webhookUrl.trim()) ? webhookUrl.trim() : null;
 
         // Optional OpenGraph Cloaking Metadata for Social Scrapers
         const cleanOgTitle = typeof ogTitle === "string" && ogTitle.trim() ? ogTitle.trim().slice(0, 200) : null;
@@ -231,6 +234,7 @@ export async function POST(req: Request) {
             burnAfterRead: Boolean(burnAfterRead),
             deepLink: Boolean(deepLink),
             splashMessage: cleanSplashMessage,
+            webhookUrl: cleanWebhookUrl,
             isBurned: false,
             expiresAt: finalExpiresAt,
             tags: tagsArray,

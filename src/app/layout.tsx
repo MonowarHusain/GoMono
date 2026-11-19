@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Toaster } from "sonner";
 import CommandPalette from "@/components/CommandPalette";
+import ShortcutsModal from "@/components/ShortcutsModal";
 
 // Optimize font loading
 const inter = Inter({ subsets: ["latin"] });
@@ -49,6 +50,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <CommandPalette />
+          <ShortcutsModal />
 
           {/* Global toast notifications with rich colors and a close button for better UX */}
           <Toaster

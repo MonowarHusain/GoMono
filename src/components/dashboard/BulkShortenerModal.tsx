@@ -22,10 +22,12 @@ import {
     Tag,
     Trash2,
     Table,
+    Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import QRCodeModal from "./QRCodeModal";
+import UrlExtractorModal from "@/components/UrlExtractorModal";
 import { notifyLinkCreated } from "@/lib/events";
 
 const MAX_BATCH_LIMIT = 50;
@@ -61,6 +63,7 @@ export default function BulkShortenerModal({
     const [domain, setDomain] = useState("to.mono.bro.bd");
     const [tags, setTags] = useState("");
     const [isDragging, setIsDragging] = useState(false);
+    const [isExtractorOpen, setIsExtractorOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Processing & Results State
@@ -556,6 +559,16 @@ export default function BulkShortenerModal({
                                         <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
+                                                onClick={() => setIsExtractorOpen(true)}
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 transition-colors hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                                                title="Extract all URLs from raw email, chat, or messy text"
+                                            >
+                                                <Search className="h-3 w-3" />
+                                                <span>Extract from Text</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
                                                 onClick={handleLoadSampleData}
                                                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                             >
@@ -1012,6 +1025,15 @@ export default function BulkShortenerModal({
                     onClose={() => setActiveQrUrl(null)}
                 />
             )}
+
+            {/* URL Extractor Modal */}
+            <UrlExtractorModal
+                isOpen={isExtractorOpen}
+                onClose={() => setIsExtractorOpen(false)}
+                onExtract={(extracted) => {
+                    setRawUrls((prev) => (prev.trim() ? `${prev.trim()}\n${extracted.join("\n")}` : extracted.join("\n")));
+                }}
+            />
         </>
     );
 }

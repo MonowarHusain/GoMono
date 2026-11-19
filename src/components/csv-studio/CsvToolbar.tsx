@@ -47,6 +47,7 @@ interface CsvToolbarProps {
     onCopyTsv: () => void;
     onCheckHealth?: () => void;
     isCheckingHealth?: boolean;
+    onOpenExtractor?: () => void;
 }
 
 export default function CsvToolbar({
@@ -72,6 +73,7 @@ export default function CsvToolbar({
     onCopyTsv,
     onCheckHealth,
     isCheckingHealth = false,
+    onOpenExtractor,
 }: CsvToolbarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const sampleRef = useRef<HTMLDivElement>(null);
@@ -159,6 +161,19 @@ export default function CsvToolbar({
                         <ClipboardPaste className="h-3.5 w-3.5 text-blue-500" />
                         <span className="hidden sm:inline">Paste</span>
                     </button>
+
+                    {/* Extract URLs from Raw Text Button */}
+                    {onOpenExtractor && (
+                        <button
+                            type="button"
+                            onClick={onOpenExtractor}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 font-semibold text-zinc-900 shadow-xs hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 transition"
+                            title="Extract all URLs from messy text or document"
+                        >
+                            <Search className="h-3.5 w-3.5 text-purple-500" />
+                            <span className="hidden md:inline">Extract URLs</span>
+                        </button>
+                    )}
 
                     {/* Sample Templates Dropdown */}
                     <div ref={sampleRef} className="relative">

@@ -31,6 +31,7 @@ import CsvCleanerModal from "./CsvCleanerModal";
 import CsvShortenModal from "./CsvShortenModal";
 import CsvBatchQrModal from "./CsvBatchQrModal";
 import CsvUtmModal from "./CsvUtmModal";
+import UrlExtractorModal from "@/components/UrlExtractorModal";
 
 export default function CsvStudio() {
     // Master Table State initialized from default empty template
@@ -72,6 +73,7 @@ export default function CsvStudio() {
     const [isShortenerOpen, setIsShortenerOpen] = useState(false);
     const [isBatchQrOpen, setIsBatchQrOpen] = useState(false);
     const [isUtmOpen, setIsUtmOpen] = useState(false);
+    const [isExtractorOpen, setIsExtractorOpen] = useState(false);
 
     // Filter rows based on search query
     const displayRows = useMemo(() => {
@@ -431,6 +433,22 @@ export default function CsvStudio() {
         toast.success("Copied tabular dataset to clipboard (ready to paste in Sheets / Excel)!");
     }, [columns, rows]);
 
+    // Handle Bulk URL Extractor apply
+    const handleApplyExtractedUrls = useCallback(
+        (extractedUrls: string[]) => {
+            if (extractedUrls.length === 0) return;
+            const targetCol = columns.find((c) => c.type === "url" || c.name.toLowerCase().includes("url")) || columns[0];
+            const newRows: CsvRow[] = extractedUrls.map((url) => ({
+                [targetCol.id]: url,
+            }));
+            const mergedRows = [...rows, ...newRows];
+            setRows(mergedRows);
+            recordHistory(columns, mergedRows, `Extract and append ${extractedUrls.length} URLs`);
+            toast.success(`Appended ${extractedUrls.length} extracted URLs to column "${targetCol.name}"`);
+        },
+        [columns, rows, recordHistory]
+    );
+
     // Zero-Cost Batch HTTP Link Health Check
     const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
@@ -602,6 +620,7 @@ export default function CsvStudio() {
                 onCopyTsv={handleCopyTsv}
                 onCheckHealth={handleCheckHealth}
                 isCheckingHealth={isCheckingHealth}
+                onOpenExtractor={() => setIsExtractorOpen(true)}
             />
 
             {/* Virtualized Data Grid */}
@@ -671,6 +690,12 @@ export default function CsvStudio() {
                 onClose={() => setIsUtmOpen(false)}
                 columns={columns}
                 onApplyUtm={handleApplyUtm}
+            />
+
+            <UrlExtractorModal
+                isOpen={isExtractorOpen}
+                onClose={() => setIsExtractorOpen(false)}
+                onExtract={handleApplyExtractedUrls}
             />
         </div>
     );

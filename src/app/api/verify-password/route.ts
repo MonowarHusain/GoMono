@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { verifyPassword } from "@/lib/link-password";
 
 export async function POST(req: Request) {
     try {
@@ -34,17 +35,25 @@ export async function POST(req: Request) {
         }
 
         const expectedPassword = data.password;
-        if (!data.isProtected && !expectedPassword) {
+        const expectedHash = data.passwordHash;
+
+        if (!data.isProtected && !expectedPassword && !expectedHash) {
             return NextResponse.json({ success: true, authorized: true });
         }
 
-        const isValid = expectedPassword === password;
+        let isValid = false;
+        if (expectedHash) {
+            isValid = await verifyPassword(password, expectedHash);
+        } else if (expectedPassword) {
+            isValid = expectedPassword === password;
+        }
+
         if (!isValid) {
             return NextResponse.json({ error: "Incorrect passcode. Please try again.", authorized: false }, { status: 401 });
         }
 
-        const res = NextResponse.json({ success: true, authorized: true });
-        res.cookies.set(`gomono_pwd_${alias}`, expectedPassword, {
+        const res = NextResponse.json({ success: true, authorized: true, targetUrl: data.originalUrl });
+        res.cookies.set(`gomono_pwd_${alias}`, expectedHash || expectedPassword, {
             path: "/",
             httpOnly: true,
             sameSite: "lax",

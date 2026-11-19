@@ -7,7 +7,8 @@ import { detectTrafficType } from "@/lib/bot-detector";
 import { resolveSplitDestination } from "@/lib/ab-router";
 import { resolveLocaleDestination } from "@/lib/locale-router";
 import { evaluateLinkSchedule } from "@/lib/schedule-evaluator";
-import PasswordGate from "@/components/public/PasswordGate";
+import { hashPasswordSync } from "@/lib/link-password";
+import PasswordGateCard from "@/components/PasswordGateCard";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
 import LinkScheduleNotice from "@/components/LinkScheduleNotice";
 import LinkInspectorCard, { type LinkInspectorData } from "@/components/LinkInspectorCard";
@@ -129,22 +130,39 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
 
     // 6. Security Check: Password Protection Interception
     const linkPassword = (data.password && typeof data.password === "string" && data.password.trim()) || null;
-    const isProtected = Boolean(data.isProtected || linkPassword);
+    const linkPasswordHash = (data.passwordHash && typeof data.passwordHash === "string" && data.passwordHash.trim()) || null;
+    const isProtected = Boolean(data.isProtected || linkPassword || linkPasswordHash);
 
-    if (isProtected && linkPassword) {
+    if (isProtected && (linkPassword || linkPasswordHash)) {
         const cookieStore = await cookies();
         const cookieAuth = cookieStore.get(`gomono_pwd_${alias}`)?.value;
 
-        const isAuthByQuery = Boolean(attemptedPassword && attemptedPassword === linkPassword);
-        const isAuthByCookie = Boolean(cookieAuth && cookieAuth === linkPassword);
+        let isAuthByQuery = false;
+        let isAuthByCookie = false;
+
+        if (attemptedPassword) {
+            if (linkPasswordHash) {
+                isAuthByQuery = hashPasswordSync(attemptedPassword) === linkPasswordHash;
+            } else if (linkPassword) {
+                isAuthByQuery = attemptedPassword === linkPassword;
+            }
+        }
+
+        if (cookieAuth) {
+            if (linkPasswordHash) {
+                isAuthByCookie = cookieAuth === linkPasswordHash;
+            } else if (linkPassword) {
+                isAuthByCookie = cookieAuth === linkPassword;
+            }
+        }
 
         if (!isAuthByQuery && !isAuthByCookie) {
-            // Render the gorgeous, minimalist password-entry screen matching GoMono's aesthetic
+            // Render the modern PasswordGateCard
             return (
-                <PasswordGate
+                <PasswordGateCard
                     alias={alias}
                     domain={data.domain || "to.mono.bro.bd"}
-                    initialError={Boolean(attemptedPassword && attemptedPassword !== linkPassword)}
+                    initialError={Boolean(attemptedPassword && !isAuthByQuery)}
                 />
             );
         }

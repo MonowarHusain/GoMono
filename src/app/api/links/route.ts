@@ -3,6 +3,7 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import crypto from "crypto";
+import { hashPasswordSync } from "@/lib/link-password";
 import type { CreateLinkInput } from "@/types/link";
 
 export async function POST(req: Request) {
@@ -170,6 +171,7 @@ export async function POST(req: Request) {
         }
 
         const cleanPassword = typeof password === "string" && password.trim() ? password.trim() : null;
+        const cleanPasswordHash = cleanPassword ? hashPasswordSync(cleanPassword) : null;
 
         if (isDemoUser) {
             const tomorrow = new Date();
@@ -219,6 +221,7 @@ export async function POST(req: Request) {
             createdAt: FieldValue.serverTimestamp(),
             isProtected: !!cleanPassword,
             password: cleanPassword,
+            passwordHash: cleanPasswordHash,
             maxClicks: finalMaxClicks,
             expiresAt: finalExpiresAt,
             tags: tagsArray,

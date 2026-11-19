@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, schedule, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -128,6 +128,30 @@ export async function POST(req: Request) {
             if (Object.keys(cleanLocaleRules).length === 0) cleanLocaleRules = null;
         }
 
+        // Optional Scheduled Link Availability Window
+        let cleanSchedule: Record<string, unknown> | null = null;
+        if (schedule && typeof schedule === "object") {
+            cleanSchedule = {};
+            if (schedule.startAt) {
+                const s = new Date(schedule.startAt);
+                if (!isNaN(s.getTime())) cleanSchedule.startAt = s.toISOString();
+            }
+            if (schedule.endAt) {
+                const e = new Date(schedule.endAt);
+                if (!isNaN(e.getTime())) cleanSchedule.endAt = e.toISOString();
+            }
+            if (Array.isArray(schedule.activeDays) && schedule.activeDays.length > 0) {
+                cleanSchedule.activeDays = schedule.activeDays.filter((d) => typeof d === "number" && d >= 0 && d <= 6);
+            }
+            if (typeof schedule.startHour === "number" && !isNaN(schedule.startHour)) {
+                cleanSchedule.startHour = Math.max(0, Math.min(23, schedule.startHour));
+            }
+            if (typeof schedule.endHour === "number" && !isNaN(schedule.endHour)) {
+                cleanSchedule.endHour = Math.max(0, Math.min(23, schedule.endHour));
+            }
+            if (Object.keys(cleanSchedule).length === 0) cleanSchedule = null;
+        }
+
         // Process Security Options: Expiration Date, Max Clicks, Password
         let finalExpiresAt: Date | null = null;
         if (expiresAt) {
@@ -189,6 +213,7 @@ export async function POST(req: Request) {
             ogImage: cleanOgImage,
             abVariants: cleanAbVariants,
             localeRules: cleanLocaleRules,
+            schedule: cleanSchedule,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),

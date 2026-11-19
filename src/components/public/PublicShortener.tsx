@@ -77,6 +77,10 @@ export default function PublicShortener() {
     const [maxClicks, setMaxClicks] = useState("");
     const [expiresAt, setExpiresAt] = useState("");
     const [password, setPassword] = useState("");
+    const [scheduleStartAt, setScheduleStartAt] = useState("");
+    const [scheduleEndAt, setScheduleEndAt] = useState("");
+    const [scheduleStartHour, setScheduleStartHour] = useState("");
+    const [scheduleEndHour, setScheduleEndHour] = useState("");
     const [iosUrl, setIosUrl] = useState("");
     const [androidUrl, setAndroidUrl] = useState("");
     const [variantBUrl, setVariantBUrl] = useState("");
@@ -103,6 +107,10 @@ export default function PublicShortener() {
         setMaxClicks("");
         setExpiresAt("");
         setPassword("");
+        setScheduleStartAt("");
+        setScheduleEndAt("");
+        setScheduleStartHour("");
+        setScheduleEndHour("");
         setIosUrl("");
         setAndroidUrl("");
         setVariantBUrl("");
@@ -189,6 +197,12 @@ export default function PublicShortener() {
                     ]
                     : undefined,
                 localeRules: Object.keys(localeRules).length > 0 ? localeRules : undefined,
+                schedule: (scheduleStartAt || scheduleEndAt || scheduleStartHour !== "") ? {
+                    startAt: scheduleStartAt ? new Date(scheduleStartAt).toISOString() : undefined,
+                    endAt: scheduleEndAt ? new Date(scheduleEndAt).toISOString() : undefined,
+                    startHour: scheduleStartHour !== "" ? parseInt(scheduleStartHour, 10) : undefined,
+                    endHour: scheduleEndHour !== "" ? parseInt(scheduleEndHour, 10) : undefined,
+                } : undefined,
                 creatorType: "public" as const,
                 userId: null,
                 isAdminOnly: false,
@@ -311,7 +325,7 @@ export default function PublicShortener() {
     };
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
-    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
+    const hasSecurityOptions = Boolean(password || expiresAt || maxClicks || scheduleStartAt || scheduleEndAt || scheduleStartHour !== "");
     const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
@@ -577,6 +591,10 @@ export default function PublicShortener() {
                                                 setPassword("");
                                                 setExpiresAt("");
                                                 setMaxClicks("");
+                                                setScheduleStartAt("");
+                                                setScheduleEndAt("");
+                                                setScheduleStartHour("");
+                                                setScheduleEndHour("");
                                             }}
                                             className="text-[11px] font-medium text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                                         >
@@ -647,6 +665,83 @@ export default function PublicShortener() {
                                             className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 dark:border-zinc-800/90 dark:bg-zinc-950/70 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-orange-500/50"
                                         />
                                         <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">Deactivates after N clicks</span>
+                                    </div>
+                                </div>
+
+                                {/* Scheduled Time-Window & Operating Hours Subsection */}
+                                <div className="mt-3.5 border-t border-zinc-200/60 pt-3 dark:border-zinc-800/60">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="h-3 w-3 text-amber-500" />
+                                            <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                                                Scheduled Availability Window (Optional)
+                                            </span>
+                                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+                                                Time-Window
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                        {/* Window Start */}
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                                                Start Date & Time (Launch)
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={scheduleStartAt}
+                                                onChange={(e) => setScheduleStartAt(e.target.value)}
+                                                className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 px-3 text-xs text-zinc-800 outline-none transition-colors focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 [color-scheme:light] dark:[color-scheme:dark]"
+                                            />
+                                        </div>
+
+                                        {/* Window End */}
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                                                End Date & Time (Close)
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={scheduleEndAt}
+                                                onChange={(e) => setScheduleEndAt(e.target.value)}
+                                                className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 px-3 text-xs text-zinc-800 outline-none transition-colors focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 [color-scheme:light] dark:[color-scheme:dark]"
+                                            />
+                                        </div>
+
+                                        {/* Active Operating Hours */}
+                                        <div className="space-y-1 sm:col-span-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                                                    Daily Operating Hours (UTC)
+                                                </label>
+                                                {(scheduleStartHour !== "" || scheduleEndHour !== "") && (
+                                                    <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400">
+                                                        Active: {scheduleStartHour || 0}:00 - {scheduleEndHour || 24}:00 UTC
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="23"
+                                                    placeholder="From hour (0-23, e.g. 9)"
+                                                    value={scheduleStartHour}
+                                                    onChange={(e) => setScheduleStartHour(e.target.value)}
+                                                    className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 px-3 text-xs text-zinc-800 outline-none focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="23"
+                                                    placeholder="Until hour (0-23, e.g. 17)"
+                                                    value={scheduleEndHour}
+                                                    onChange={(e) => setScheduleEndHour(e.target.value)}
+                                                    className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 px-3 text-xs text-zinc-800 outline-none focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

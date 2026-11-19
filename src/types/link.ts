@@ -3,6 +3,8 @@
  * Supports core link fields and security options (password, expiresAt, maxClicks).
  */
 
+import { type LinkScheduleConfig } from "@/lib/schedule-evaluator";
+
 export interface CreateLinkInput {
     originalUrl: string;
     customAlias?: string | null;
@@ -18,6 +20,7 @@ export interface CreateLinkInput {
     ogImage?: string | null;
     abVariants?: Array<{ url: string; weight: number; label?: string }> | null;
     localeRules?: Record<string, string> | null;
+    schedule?: LinkScheduleConfig | null;
     creatorType?: "admin" | "public";
     userId?: string | null;
     isAdminOnly?: boolean;
@@ -40,6 +43,7 @@ export interface Link {
     ogImage?: string | null;
     abVariants?: Array<{ url: string; weight: number; label?: string }> | null;
     localeRules?: Record<string, string> | null;
+    schedule?: LinkScheduleConfig | null;
     domain?: string;
     totalClicks: number;
     createdAt: string;

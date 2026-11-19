@@ -6,8 +6,10 @@ import { parseUserAgent, sanitizeFieldKey } from "@/lib/userAgent";
 import { detectTrafficType } from "@/lib/bot-detector";
 import { resolveSplitDestination } from "@/lib/ab-router";
 import { resolveLocaleDestination } from "@/lib/locale-router";
+import { evaluateLinkSchedule } from "@/lib/schedule-evaluator";
 import PasswordGate from "@/components/public/PasswordGate";
 import LinkExpiredView from "@/components/public/LinkExpiredView";
+import LinkScheduleNotice from "@/components/LinkScheduleNotice";
 import LinkInspectorCard, { type LinkInspectorData } from "@/components/LinkInspectorCard";
 
 interface PageProps {
@@ -107,6 +109,22 @@ export default async function RedirectPage({ params, searchParams }: PageProps) 
                 totalClicks={totalClicks}
             />
         );
+    }
+
+    // 5b. Scheduled Time-Window & Active Hours Check
+    if (data.schedule) {
+        const scheduleResult = evaluateLinkSchedule(data.schedule);
+        if (!scheduleResult.isActive) {
+            return (
+                <LinkScheduleNotice
+                    alias={alias}
+                    domain={data.domain || "to.mono.bro.bd"}
+                    reason={scheduleResult.reason || "outside_hours"}
+                    nextAvailableText={scheduleResult.nextAvailableText}
+                    details={scheduleResult.details}
+                />
+            );
+        }
     }
 
     // 6. Security Check: Password Protection Interception

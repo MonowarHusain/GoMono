@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         }
 
         const body: CreateLinkInput = await req.json();
-        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, creatorType: requestedCreatorType } = body;
+        const { originalUrl, customAlias, domain, tags, maxClicks, expiresAt, password, iosUrl, androidUrl, ogTitle, ogDescription, ogImage, abVariants, localeRules, creatorType: requestedCreatorType } = body;
 
         // If request explicitly signals public creation, enforce public separation
         if (requestedCreatorType === "public") {
@@ -111,6 +111,23 @@ export async function POST(req: Request) {
             if (cleanAbVariants.length === 0) cleanAbVariants = null;
         }
 
+        // Optional Accept-Language Locale Rules
+        let cleanLocaleRules: Record<string, string> | null = null;
+        if (localeRules && typeof localeRules === "object") {
+            cleanLocaleRules = {};
+            for (const [code, target] of Object.entries(localeRules)) {
+                if (typeof target === "string" && target.trim()) {
+                    const cleanCode = code.trim().toLowerCase().slice(0, 10);
+                    let cleanTarget = target.trim();
+                    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(cleanTarget)) {
+                        cleanTarget = `https://${cleanTarget}`;
+                    }
+                    cleanLocaleRules[cleanCode] = cleanTarget;
+                }
+            }
+            if (Object.keys(cleanLocaleRules).length === 0) cleanLocaleRules = null;
+        }
+
         // Process Security Options: Expiration Date, Max Clicks, Password
         let finalExpiresAt: Date | null = null;
         if (expiresAt) {
@@ -171,6 +188,7 @@ export async function POST(req: Request) {
             ogDescription: cleanOgDescription,
             ogImage: cleanOgImage,
             abVariants: cleanAbVariants,
+            localeRules: cleanLocaleRules,
             domain: domain || "to.mono.bro.bd",
             totalClicks: 0,
             createdAt: FieldValue.serverTimestamp(),

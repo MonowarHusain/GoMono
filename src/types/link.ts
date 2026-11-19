@@ -17,6 +17,7 @@ export interface CreateLinkInput {
     ogDescription?: string | null;
     ogImage?: string | null;
     abVariants?: Array<{ url: string; weight: number; label?: string }> | null;
+    localeRules?: Record<string, string> | null;
     creatorType?: "admin" | "public";
     userId?: string | null;
     isAdminOnly?: boolean;
@@ -38,6 +39,7 @@ export interface Link {
     ogDescription?: string | null;
     ogImage?: string | null;
     abVariants?: Array<{ url: string; weight: number; label?: string }> | null;
+    localeRules?: Record<string, string> | null;
     domain?: string;
     totalClicks: number;
     createdAt: string;

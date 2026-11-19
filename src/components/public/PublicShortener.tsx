@@ -28,6 +28,9 @@ import {
     History,
     Share2,
     Tag,
+    Globe,
+    Plus,
+    Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -37,6 +40,7 @@ import LocalVaultDrawer from "@/components/LocalVaultDrawer";
 import UtmBuilderAccordion from "@/components/UtmBuilderAccordion";
 import { useLocalLinkVault } from "@/hooks/useLocalLinkVault";
 import { parseUtmUrl } from "@/lib/utm-builder";
+import { POPULAR_LOCALES } from "@/lib/locale-router";
 import { notifyLinkCreated } from "@/lib/events";
 
 interface ShortenResult {
@@ -77,6 +81,10 @@ export default function PublicShortener() {
     const [androidUrl, setAndroidUrl] = useState("");
     const [variantBUrl, setVariantBUrl] = useState("");
     const [splitWeight, setSplitWeight] = useState(50);
+    const [localeRules, setLocaleRules] = useState<Record<string, string>>({});
+    const [newLocaleCode, setNewLocaleCode] = useState("bn");
+    const [newLocaleUrl, setNewLocaleUrl] = useState("");
+    const [isAddingLocale, setIsAddingLocale] = useState(false);
     const [ogTitle, setOgTitle] = useState("");
     const [ogDescription, setOgDescription] = useState("");
     const [ogImage, setOgImage] = useState("");
@@ -99,6 +107,9 @@ export default function PublicShortener() {
         setAndroidUrl("");
         setVariantBUrl("");
         setSplitWeight(50);
+        setLocaleRules({});
+        setNewLocaleUrl("");
+        setIsAddingLocale(false);
         setOgTitle("");
         setOgDescription("");
         setOgImage("");
@@ -177,6 +188,7 @@ export default function PublicShortener() {
                         { url: variantBUrl.trim(), weight: splitWeight, label: "Variant B (Challenger)" },
                     ]
                     : undefined,
+                localeRules: Object.keys(localeRules).length > 0 ? localeRules : undefined,
                 creatorType: "public" as const,
                 userId: null,
                 isAdminOnly: false,
@@ -300,7 +312,7 @@ export default function PublicShortener() {
 
     const activeDomainObj = DOMAIN_OPTIONS.find((d) => d.value === selectedDomain) || DOMAIN_OPTIONS[0];
     const hasSecurityOptions = Boolean(password || expiresAt || maxClicks);
-    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl);
+    const hasRoutingOptions = Boolean(customAlias || iosUrl || androidUrl || variantBUrl || Object.keys(localeRules).length > 0);
     const hasOgOptions = Boolean(ogTitle || ogDescription || ogImage);
     const hasUtmOptions = Boolean(parseUtmUrl(originalUrl).params.utm_source);
 
@@ -656,6 +668,8 @@ export default function PublicShortener() {
                                                 setAndroidUrl("");
                                                 setVariantBUrl("");
                                                 setSplitWeight(50);
+                                                setLocaleRules({});
+                                                setIsAddingLocale(false);
                                             }}
                                             className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                                         >
@@ -784,6 +798,135 @@ export default function PublicShortener() {
                                             </div>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Language / Accept-Language Locale Smart Routing */}
+                                <div className="mt-3.5 border-t border-zinc-200/60 pt-3 dark:border-zinc-800/60">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <Globe className="h-3 w-3 text-indigo-500" />
+                                            <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                                                Language / Locale Smart Routing
+                                            </span>
+                                            <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                                                Zero-API
+                                            </span>
+                                        </div>
+                                        {!isAddingLocale && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAddingLocale(true)}
+                                                className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                            >
+                                                <Plus className="h-3 w-3" />
+                                                <span>Add Language Target</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Active configured locale rules */}
+                                    {Object.entries(localeRules).length > 0 && (
+                                        <div className="space-y-1.5 mb-2.5">
+                                            {Object.entries(localeRules).map(([code, targetUrl]) => {
+                                                const localeObj = POPULAR_LOCALES.find((l) => l.code === code);
+                                                return (
+                                                    <div
+                                                        key={code}
+                                                        className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white/70 px-2.5 py-1.5 text-xs dark:border-zinc-800 dark:bg-zinc-950/60"
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                                                                {code}
+                                                            </span>
+                                                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                                                {localeObj ? `${localeObj.label} (${localeObj.nativeName})` : code}
+                                                            </span>
+                                                            <span className="text-zinc-300 dark:text-zinc-700">→</span>
+                                                            <span className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+                                                                {targetUrl}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const next = { ...localeRules };
+                                                                delete next[code];
+                                                                setLocaleRules(next);
+                                                            }}
+                                                            className="p-1 text-zinc-400 hover:text-rose-500 transition-colors ml-2"
+                                                            title="Remove rule"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Add New Locale Rule Form */}
+                                    {isAddingLocale && (
+                                        <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-2.5 dark:border-indigo-900/60 dark:bg-indigo-950/20 space-y-2">
+                                            <div className="flex items-center justify-between text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                                                <span>Map Visitor Browser Language</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsAddingLocale(false)}
+                                                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <select
+                                                    value={newLocaleCode}
+                                                    onChange={(e) => setNewLocaleCode(e.target.value)}
+                                                    className="rounded-xl border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-800 outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                                                >
+                                                    {POPULAR_LOCALES.map((l) => (
+                                                        <option key={l.code} value={l.code}>
+                                                            {l.label} ({l.code})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    type="url"
+                                                    value={newLocaleUrl}
+                                                    onChange={(e) => setNewLocaleUrl(e.target.value)}
+                                                    placeholder="Destination for this language..."
+                                                    className="sm:col-span-2 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-800 outline-none placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsAddingLocale(false)}
+                                                    className="rounded-lg px-2.5 py-1 text-xs text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (!newLocaleUrl.trim()) {
+                                                            toast.error("Please enter a destination URL for this language");
+                                                            return;
+                                                        }
+                                                        setLocaleRules((prev) => ({
+                                                            ...prev,
+                                                            [newLocaleCode]: newLocaleUrl.trim(),
+                                                        }));
+                                                        setNewLocaleUrl("");
+                                                        setIsAddingLocale(false);
+                                                        toast.success(`Locale rule added for ${newLocaleCode}`);
+                                                    }}
+                                                    className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-500 shadow-xs"
+                                                >
+                                                    Save Rule
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

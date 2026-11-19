@@ -112,3 +112,90 @@ export function isValidVariantList(variants: unknown): variants is AbVariant[] {
             (v as AbVariant).weight > 0
     );
 }
+
+export interface RotatorPoolItem {
+    url: string;
+    weight?: number;
+    label?: string;
+}
+
+export interface RotatorResult {
+    selectedUrl: string;
+    selectedIndex: number;
+    poolSize: number;
+    label?: string;
+}
+
+/**
+ * Resolves destination from a multi-destination link rotator pool.
+ * Supports weighted random or uniform round-robin distribution with zero external state.
+ * If clickCount is provided, deterministic round-robin (clickCount % poolSize) is used.
+ * Otherwise, weighted random distribution is applied.
+ */
+export function resolveRotatorDestination(
+    pool: RotatorPoolItem[] | null | undefined,
+    fallbackUrl: string,
+    clickCount?: number
+): RotatorResult {
+    const trimmedFallback = fallbackUrl.trim();
+
+    if (!Array.isArray(pool) || pool.length === 0) {
+        return {
+            selectedUrl: trimmedFallback,
+            selectedIndex: -1,
+            poolSize: 0,
+            label: "Default Fallback",
+        };
+    }
+
+    const validItems = pool.filter(
+        (item) => item && typeof item.url === "string" && item.url.trim().length > 0
+    );
+
+    if (validItems.length === 0) {
+        return {
+            selectedUrl: trimmedFallback,
+            selectedIndex: -1,
+            poolSize: 0,
+            label: "Default Fallback",
+        };
+    }
+
+    if (validItems.length === 1) {
+        return {
+            selectedUrl: validItems[0].url.trim(),
+            selectedIndex: 0,
+            poolSize: 1,
+            label: validItems[0].label || "Destination 1",
+        };
+    }
+
+    // Deterministic round-robin if clickCount is provided and valid
+    if (typeof clickCount === "number" && clickCount >= 0) {
+        const index = clickCount % validItems.length;
+        return {
+            selectedUrl: validItems[index].url.trim(),
+            selectedIndex: index,
+            poolSize: validItems.length,
+            label: validItems[index].label || `Rotator ${index + 1}`,
+        };
+    }
+
+    // Otherwise weighted or uniform random distribution
+    const splitResult = resolveSplitDestination(
+        validItems.map((item) => ({
+            url: item.url,
+            weight: typeof item.weight === "number" && item.weight > 0 ? item.weight : 1,
+            label: item.label,
+        })),
+        trimmedFallback
+    );
+
+    return {
+        selectedUrl: splitResult.selectedUrl,
+        selectedIndex: splitResult.selectedIndex,
+        poolSize: validItems.length,
+        label: splitResult.variantLabel,
+    };
+}
+
